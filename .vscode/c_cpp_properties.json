@@ -1,0 +1,38 @@
+{
+    "env": {
+      "myIncludePath":
+      [
+        "${workspaceFolder}/Core/Inc",
+        "${workspaceFolder}/Drivers/CMSIS/Core/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Core_A/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32L0xx/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Core/Include",
+        "${workspaceFolder}/Drivers/CMSIS/DSP/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Include",
+        "${workspaceFolder}/Drivers/STM32L0xx_HAL_Driver/Inc"
+      ],
+      "myDefines":
+      [
+        "DEBUG",
+        "STM32L051xx",
+        "USE_FULL_LL_DRIVER"
+      ]
+    },
+    "configurations": [
+      {
+        "name": "Win32",
+        "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.28.29333/bin/Hostx64/x64/cl.exe",
+        "intelliSenseMode": "windows-msvc-x64",
+        "includePath": ["${myIncludePath}"],
+        "defines": ["${myDefines}", "_WINDOWS"],
+        "cStandard": "c17",
+        "cppStandard": "c++20",
+        "windowsSdkVersion": "10.0.19041.0",
+        "browse": {
+          "path": ["${myIncludePath}", "${workspaceFolder}"]
+        }
+      }
+    ],
+    "version": 4,
+    "enableConfigurationSquiggles": true
+  }

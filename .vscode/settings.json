@@ -1,0 +1,10 @@
+{
+    "stm32-for-vscode.openOCDPath": false,
+    "stm32-for-vscode.armToolchainPath": false,
+    "files.associations": {
+        "main.h": "c",
+        "stm32l0xx_ll_adc.h": "c",
+        "stm32l0xx.h": "c",
+        "stm32l051xx.h": "c"
+    }
+}
