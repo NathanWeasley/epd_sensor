@@ -75,22 +75,24 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BATT_AIN_Pin LL_GPIO_PIN_0
-#define BATT_AIN_GPIO_Port GPIOA
-#define EPD_DC_Pin LL_GPIO_PIN_3
-#define EPD_DC_GPIO_Port GPIOA
-#define EPD_CS_Pin LL_GPIO_PIN_4
-#define EPD_CS_GPIO_Port GPIOA
+#define BATT_Pin LL_GPIO_PIN_0
+#define BATT_GPIO_Port GPIOA
+#define EPD_RST_Pin LL_GPIO_PIN_3
+#define EPD_RST_GPIO_Port GPIOA
+#define EPD_nCS_Pin LL_GPIO_PIN_4
+#define EPD_nCS_GPIO_Port GPIOA
 #define EPD_SCK_Pin LL_GPIO_PIN_5
 #define EPD_SCK_GPIO_Port GPIOA
-#define EPD_BUSY_Pin LL_GPIO_PIN_6
-#define EPD_BUSY_GPIO_Port GPIOA
+#define EPD_DC_Pin LL_GPIO_PIN_6
+#define EPD_DC_GPIO_Port GPIOA
 #define EPD_DIN_Pin LL_GPIO_PIN_7
 #define EPD_DIN_GPIO_Port GPIOA
-#define KEY_A_Pin LL_GPIO_PIN_0
-#define KEY_A_GPIO_Port GPIOB
-#define KEY_B_Pin LL_GPIO_PIN_1
-#define KEY_B_GPIO_Port GPIOB
+#define EPD_BUSY_Pin LL_GPIO_PIN_0
+#define EPD_BUSY_GPIO_Port GPIOB
+#define KEYB_Pin LL_GPIO_PIN_12
+#define KEYB_GPIO_Port GPIOB
+#define KEYA_Pin LL_GPIO_PIN_13
+#define KEYA_GPIO_Port GPIOB
 #ifndef NVIC_PRIORITYGROUP_0
 #define NVIC_PRIORITYGROUP_0         ((uint32_t)0x00000007) /*!< 0 bit  for pre-emption priority,
                                                                  4 bits for subpriority */

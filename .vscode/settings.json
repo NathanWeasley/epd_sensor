@@ -1,6 +1,6 @@
 {
     "stm32-for-vscode.openOCDPath": false,
-    "stm32-for-vscode.armToolchainPath": false,
+    "stm32-for-vscode.armToolchainPath": "D:\\_MyDocs\\_devel\\_misc\\gcc-arm-none-eabi-10.3-2021.10\\bin",
     "files.associations": {
         "main.h": "c",
         "stm32l0xx_ll_adc.h": "c",

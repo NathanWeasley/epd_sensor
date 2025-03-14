@@ -6,7 +6,7 @@
 **
 **  Author		: STM32CubeMX
 **
-**  Abstract    : Linker script for STM32L051K8Tx series
+**  Abstract    : Linker script for STM32L051C8Tx series
 **                64Kbytes FLASH and 8Kbytes RAM
 **
 **                Set heap size, stack size and stack location according
