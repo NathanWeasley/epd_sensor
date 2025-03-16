@@ -49,7 +49,8 @@ Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_i2c.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_rtc.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_spi.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_pwr.c \
-Core/Src/system_stm32l0xx.c  
+Core/Src/system_stm32l0xx.c  \
+App/Src/SHTC3.c
 
 # ASM sources
 ASM_SOURCES =  \
@@ -123,7 +124,8 @@ C_INCLUDES =  \
 -ICore/Inc \
 -IDrivers/STM32L0xx_HAL_Driver/Inc \
 -IDrivers/CMSIS/Device/ST/STM32L0xx/Include \
--IDrivers/CMSIS/Include
+-IDrivers/CMSIS/Include \
+-IApp/Inc
 
 
 # compile gcc flags
