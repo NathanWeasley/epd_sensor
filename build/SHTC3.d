@@ -1,0 +1,2 @@
+build/SHTC3.o: App/SHTC3/SHTC3.c App/SHTC3/SHTC3.h
+App/SHTC3/SHTC3.h:

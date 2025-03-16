@@ -4,12 +4,8 @@
       [
         "${workspaceFolder}/App",
         "${workspaceFolder}/Core/Inc",
-        "${workspaceFolder}/Drivers/CMSIS/Core/Include",
-        "${workspaceFolder}/Drivers/CMSIS/Core_A/Include",
-        "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32L0xx/Include",
-        "${workspaceFolder}/Drivers/CMSIS/Core/Include",
-        "${workspaceFolder}/Drivers/CMSIS/DSP/Include",
         "${workspaceFolder}/Drivers/CMSIS/Include",
+        "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32L0xx/Include",
         "${workspaceFolder}/Drivers/STM32L0xx_HAL_Driver/Inc"
       ],
       "myDefines":

@@ -29,7 +29,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l0xx_ll_adc.h"
 #include "stm32l0xx_ll_crc.h"
-#include "stm32l0xx_ll_i2c.h"
+#include "stm32l0xx_ll_lptim.h"
 #include "stm32l0xx_ll_crs.h"
 #include "stm32l0xx_ll_rcc.h"
 #include "stm32l0xx_ll_bus.h"
@@ -75,24 +75,30 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BATT_Pin LL_GPIO_PIN_0
-#define BATT_GPIO_Port GPIOA
+#define BATT_IN_Pin LL_GPIO_PIN_0
+#define BATT_IN_GPIO_Port GPIOA
+#define EPD_PWR_Pin LL_GPIO_PIN_10
+#define EPD_PWR_GPIO_Port GPIOA
 #define EPD_RST_Pin LL_GPIO_PIN_3
 #define EPD_RST_GPIO_Port GPIOA
-#define EPD_nCS_Pin LL_GPIO_PIN_4
-#define EPD_nCS_GPIO_Port GPIOA
-#define EPD_SCK_Pin LL_GPIO_PIN_5
-#define EPD_SCK_GPIO_Port GPIOA
+#define EPD_CS_Pin LL_GPIO_PIN_4
+#define EPD_CS_GPIO_Port GPIOA
+#define EPD_CLK_Pin LL_GPIO_PIN_5
+#define EPD_CLK_GPIO_Port GPIOA
 #define EPD_DC_Pin LL_GPIO_PIN_6
 #define EPD_DC_GPIO_Port GPIOA
 #define EPD_DIN_Pin LL_GPIO_PIN_7
 #define EPD_DIN_GPIO_Port GPIOA
 #define EPD_BUSY_Pin LL_GPIO_PIN_0
 #define EPD_BUSY_GPIO_Port GPIOB
-#define KEYB_Pin LL_GPIO_PIN_12
-#define KEYB_GPIO_Port GPIOB
-#define KEYA_Pin LL_GPIO_PIN_13
-#define KEYA_GPIO_Port GPIOB
+#define KEY_B_Pin LL_GPIO_PIN_8
+#define KEY_B_GPIO_Port GPIOA
+#define KEY_A_Pin LL_GPIO_PIN_9
+#define KEY_A_GPIO_Port GPIOA
+#define SHTC3_SCL_Pin LL_GPIO_PIN_6
+#define SHTC3_SCL_GPIO_Port GPIOB
+#define SHTC3_SDA_Pin LL_GPIO_PIN_7
+#define SHTC3_SDA_GPIO_Port GPIOB
 #ifndef NVIC_PRIORITYGROUP_0
 #define NVIC_PRIORITYGROUP_0         ((uint32_t)0x00000007) /*!< 0 bit  for pre-emption priority,
                                                                  4 bits for subpriority */

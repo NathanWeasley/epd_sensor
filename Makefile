@@ -45,16 +45,18 @@ Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_rcc.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_utils.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_exti.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_crc.c \
-Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_i2c.c \
+Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_lptim.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_rtc.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_spi.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_pwr.c \
 Core/Src/system_stm32l0xx.c  \
-App/Src/SHTC3.c
+App/SHTC3/SHTC3.c \
+App/EPD/epd_driver.c \
+App/EPD/epd_api.c
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32l051xx.s
+Core/Startup/startup_stm32l051k8ux.s
 
 # ASM sources
 ASMM_SOURCES = 
@@ -125,7 +127,7 @@ C_INCLUDES =  \
 -IDrivers/STM32L0xx_HAL_Driver/Inc \
 -IDrivers/CMSIS/Device/ST/STM32L0xx/Include \
 -IDrivers/CMSIS/Include \
--IApp/Inc
+-IApp
 
 
 # compile gcc flags
@@ -146,7 +148,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32L051C8Tx_FLASH.ld
+LDSCRIPT = STM32L051K8UX_FLASH.ld
 
 # libraries
 LIBS = -lc -lm -lnosys 

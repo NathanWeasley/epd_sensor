@@ -8,9 +8,7 @@
 #define EPD_HEIGHT  250
 
 void SPI_Transmit(uint8_t byte);
-void EPD_delayms(uint16_t ms);
-
-
+void EPD_Delay_ms(uint16_t ms);
 
 void EPD_Reset();
 void EPD_WaitForBusy();
@@ -19,5 +17,4 @@ void EPD_SendCommand(uint8_t cmd);
 
 
 
-void EPD_SetWindow();
-void EPD_SetCursor();
+
