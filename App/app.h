@@ -1,4 +1,4 @@
 #pragma once
 
-#include "EPD/epd_driver.h"
+#include "EPD/epd_api.h"
 #include "SHTC3/SHTC3.h"

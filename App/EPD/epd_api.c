@@ -1,6 +1,10 @@
 #include "EPD/epd_api.h"
 #include "EPD/epd_driver.h"
 
+#define IMG_SIZE (((EPD_WIDTH % 8 == 0)? (EPD_WIDTH / 8 ): (EPD_WIDTH / 8 + 1)) * EPD_HEIGHT)
+
+static uint8_t ImageBuf[IMG_SIZE];
+
 void EPD_TurnOnDisplay(void)
 {
     EPD_SendCommand(0x22);
@@ -36,44 +40,55 @@ void EPD_SetCursor(uint16_t Xstart, uint16_t Ystart)
 
 void EPD_Init(void)
 {
+    /** Enable power delivered to EPD */
+    EPD_SetPower(1);
+    EPD_Delay_ms(100);
+
+    /** Hardware reset */
     EPD_Reset();
+    EPD_WaitForBusy();
 
-    EPD_WaitForBusy();   
-    EPD_SendCommand(0x12);  //SW RESET
-    EPD_WaitForBusy();   
+    /** Software reset */
+    EPD_SendCommand(0x12);
+    EPD_WaitForBusy();
 
-    EPD_SendCommand(0x01);  //Driver output control
+    /** Drier output control */
+    EPD_SendCommand(0x01);
     EPD_SendData(0xF9);
     EPD_SendData(0x00);
     EPD_SendData(0x00);
 
-    EPD_SendCommand(0x11);  //data entry mode
-    EPD_SendData(0x03);     ///< Formerly 0x03
+    /** Data entry mode */
+    EPD_SendCommand(0x11);
+    EPD_SendData(0x03);
     
-//    EPD_SendCommand(0x44); //set Ram-X address start/end position   
+//    EPD_SendCommand(0x44); //set Ram-X address start/end position
 //    EPD_SendData(0x00);
 //    EPD_SendData(0x0F);    //0x0F-->(15+1)*8=128
 
-//    EPD_SendCommand(0x45); //set Ram-Y address start/end position          
+//    EPD_SendCommand(0x45); //set Ram-Y address start/end position
 //    EPD_SendData(0x00);   //0xF9-->(249+1)=250
 //    EPD_SendData(0x00);
 //    EPD_SendData(0xF9);
-//    EPD_SendData(0x00); 
+//    EPD_SendData(0x00);
     
     EPD_SetWindow(0, 0, EPD_WIDTH-1, EPD_HEIGHT-1);
     EPD_SetCursor(0, 0);
 
-    EPD_SendCommand(0x3C); //BorderWavefrom
-    EPD_SendData(0x05);    
+    /** Border waveform */
+    EPD_SendCommand(0x3C);
+    EPD_SendData(0x05);
 
 //    EPD_SendCommand(0x18); //Read built-in temperature sensor
-//    EPD_SendData(0x80);    
+//    EPD_SendData(0x80);
     
-    EPD_SendCommand(0x1A); //temperature sensor
-    EPD_SendData(0x0F);  
-    EPD_SendData(0x00);  
+    /** Temperature sensor */
+    EPD_SendCommand(0x1A);
+    EPD_SendData(0x0F);
+    EPD_SendData(0x00);
 
-    EPD_SendCommand(0x21); //  Display update control
+    /** Display update control */
+    EPD_SendCommand(0x21);
     EPD_SendData(0x80);            ///< Formerly 0x80
     EPD_SendData(0x80);
 
@@ -89,28 +104,33 @@ void EPD_Init(void)
 void EPD_Clear(void)
 {
     uint16_t Width, Height;
-    Width = (EPD_WIDTH % 8 == 0)? (EPD_WIDTH / 8 ): (EPD_WIDTH / 8 + 1);
+    Width = EPD_WIDTH_BYTE;
     Height = EPD_HEIGHT;
     
     EPD_SendCommand(0x24);
-    for (uint16_t j = 0; j < Height; j++) {
-        for (uint16_t i = 0; i < Width; i++) {
+    for (uint16_t j = 0; j < Height; j++)
+    {
+        for (uint16_t i = 0; i < Width; i++)
+        {
             EPD_SendData(0XFF);
         }
     }
     EPD_SendCommand(0x26);
-    for (uint16_t j = 0; j < Height; j++) {
-        for (uint16_t i = 0; i < Width; i++) {
-            EPD_SendData(0XFF);   ///< Formerly 0xFF
+    for (uint16_t j = 0; j < Height; j++)
+    {
+        for (uint16_t i = 0; i < Width; i++)
+        {
+            EPD_SendData(0XFF);
         }
     }
+
     EPD_TurnOnDisplay();
 }
 
 void EPD_UpdateBlack(const uint8_t *blackImage)
 {
     uint16_t Width, Height;
-    Width = (EPD_WIDTH % 8 == 0)? (EPD_WIDTH / 8 ): (EPD_WIDTH / 8 + 1);
+    Width = EPD_WIDTH_BYTE;
     Height = EPD_HEIGHT;
     
     EPD_SendCommand(0x24);
@@ -126,7 +146,7 @@ void EPD_UpdateBlack(const uint8_t *blackImage)
 void EPD_UpdateRed(const uint8_t *redImage)
 {
     uint16_t Width, Height;
-    Width = (EPD_WIDTH % 8 == 0)? (EPD_WIDTH / 8 ): (EPD_WIDTH / 8 + 1);
+    Width = EPD_WIDTH_BYTE;
     Height = EPD_HEIGHT;
     
     EPD_SendCommand(0x26);
@@ -142,7 +162,7 @@ void EPD_UpdateRed(const uint8_t *redImage)
 void EPD_UpdateAll(const uint8_t *blackImage, const uint8_t *redImage)
 {
     uint16_t Width, Height;
-    Width = (EPD_WIDTH % 8 == 0)? (EPD_WIDTH / 8 ): (EPD_WIDTH / 8 + 1);
+    Width = EPD_WIDTH_BYTE;
     Height = EPD_HEIGHT;
     
     EPD_SendCommand(0x24);
@@ -161,12 +181,19 @@ void EPD_UpdateAll(const uint8_t *blackImage, const uint8_t *redImage)
             EPD_SendData(redImage[i + j * Width]);
         }
     }
+
     EPD_TurnOnDisplay();
 }
 
 void EPD_Sleep(void)
 {
-    EPD_SendCommand(0x10); //enter deep sleep
+    /** Enter deep sleep */
+    EPD_SendCommand(0x10);
     EPD_SendData(0x01);
     EPD_Delay_ms(100);
+}
+
+uint8_t * EPD_GetVRAM()
+{
+    return ImageBuf;
 }

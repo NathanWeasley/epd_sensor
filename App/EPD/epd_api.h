@@ -15,3 +15,5 @@ void EPD_UpdateBlack(const uint8_t *blackImage);
 void EPD_UpdateRed(const uint8_t *redImage);
 void EPD_UpdateAll(const uint8_t *blackImage, const uint8_t *redImage);
 void EPD_Sleep(void);
+
+uint8_t * EPD_GetVRAM(void);

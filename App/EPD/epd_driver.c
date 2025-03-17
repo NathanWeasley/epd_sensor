@@ -8,10 +8,6 @@
 #define EPD_CLK_PIN     LL_GPIO_PIN_5
 #define EPD_DIN_PIN     LL_GPIO_PIN_7
 
-#define IMG_SIZE (((EPD_WIDTH % 8 == 0)? (EPD_WIDTH / 8 ): (EPD_WIDTH / 8 + 1)) * EPD_HEIGHT)
-
-static uint8_t ImageBuf[IMG_SIZE];
-
 void SPI_Transmit(uint8_t byte)
 {
     LL_SPI_TransmitData8(SPI1, byte);
