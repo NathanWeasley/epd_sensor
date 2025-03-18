@@ -10,7 +10,6 @@
       ],
       "myDefines":
       [
-        "DEBUG",
         "__GNUC__",
         "STM32L051xx",
         "USE_FULL_LL_DRIVER"

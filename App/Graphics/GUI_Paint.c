@@ -72,6 +72,7 @@
 *
 ******************************************************************************/
 #include "Graphics/GUI_Paint.h"
+#include "Utils/utils.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h> //memset()
