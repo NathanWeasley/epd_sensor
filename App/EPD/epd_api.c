@@ -61,7 +61,7 @@ void EPD_Init(void)
     /** Data entry mode */
     EPD_SendCommand(0x11);
     EPD_SendData(0x03);
-    
+
 //    EPD_SendCommand(0x44); //set Ram-X address start/end position
 //    EPD_SendData(0x00);
 //    EPD_SendData(0x0F);    //0x0F-->(15+1)*8=128
@@ -71,7 +71,7 @@ void EPD_Init(void)
 //    EPD_SendData(0x00);
 //    EPD_SendData(0xF9);
 //    EPD_SendData(0x00);
-    
+
     EPD_SetWindow(0, 0, EPD_WIDTH-1, EPD_HEIGHT-1);
     EPD_SetCursor(0, 0);
 

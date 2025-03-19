@@ -1,7 +1,7 @@
 #include "EPD/epd_driver.h"
 
 #define EPD_PWR_PIN     LL_GPIO_PIN_10
-#define EPD_BUSY_PIN    LL_GPIO_PIN_0
+#define EPD_BUSY_PIN    LL_GPIO_PIN_0       ///< PORTB
 #define EPD_RST_PIN     LL_GPIO_PIN_3
 #define EPD_DC_PIN      LL_GPIO_PIN_6
 #define EPD_CS_PIN      LL_GPIO_PIN_4
@@ -10,7 +10,9 @@
 
 void SPI_Transmit(uint8_t byte)
 {
+    while (!(SPI1->SR & SPI_SR_TXE));
     LL_SPI_TransmitData8(SPI1, byte);
+    while (!(SPI1->SR & SPI_SR_TXE));
 }
 
 void EPD_Delay_ms(uint16_t ms)
