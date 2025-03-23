@@ -72,6 +72,8 @@
 *
 ******************************************************************************/
 #include "Graphics/GUI_Paint.h"
+#include "Graphics/font_AgencyFB.h"
+#include "Graphics/icon.h"
 #include "Utils/utils.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -735,6 +737,105 @@ void Paint_DrawNum(uint16_t Xpoint, uint16_t Ypoint, int32_t Nummber,
     Paint_DrawString_EN(Xpoint, Ypoint, (const char*)pStr, Font, Color_Background, Color_Foreground);
 }
 
+uint16_t Paint_DrawAgencyFBChar(uint16_t Xpoint, uint16_t Ypoint, const uint8_t * pmem, uint8_t width,
+                    uint16_t Color_Foreground, uint16_t Color_Background)
+{
+    uint16_t Row, Column;
+    const uint8_t * ptr;
+
+    for (Row = 0; Row < AFB_HEIGHT; Row ++)
+    {
+        ptr = pmem + Row * AFB_WIDTH_MAX;
+
+        for (Column = 0; Column < width; Column ++)
+        {
+            //To determine whether the font background color and screen background color is consistent
+            if (FONT_BACKGROUND == Color_Background)
+            { //this process is to speed up the scan
+                if (*ptr & (0x80 >> (Column % 8)))
+                    Paint_SetPixel(Xpoint + Column, Ypoint + Row, Color_Foreground);
+                    // Paint_DrawPoint(Xpoint + Column, Ypoint + Row, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+            }
+            else
+            {
+                if (*ptr & (0x80 >> (Column % 8)))
+                {
+                    Paint_SetPixel(Xpoint + Column, Ypoint + Row, Color_Foreground);
+                    // Paint_DrawPoint(Xpoint + Column, Ypoint + Row, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                }
+                else
+                {
+                    Paint_SetPixel(Xpoint + Column, Ypoint + Row, Color_Background);
+                    // Paint_DrawPoint(Xpoint + Column, Ypoint + Row, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                }
+            }
+
+            //One pixel is 8 bits
+            if (Column % 8 == 7)
+                ++ptr;
+
+        }// Write a line
+    }// Write all
+
+    return Xpoint + width;
+}
+
+uint16_t Paint_DrawAgencyFBNumber(uint16_t Xpoint, uint16_t Ypoint, int32_t Numberx10,
+                    uint16_t Color_Foreground, uint16_t Color_Background)
+{
+    uint8_t neg, i, d2, d1, d0, char_width = 0;
+    const unsigned char *ptr = (void *)0;
+
+    if (Xpoint > Paint.Width || Ypoint > Paint.Height)
+    {
+        return Xpoint;
+    }
+
+    /** If number is negative, display minus sign first */
+    neg = Numberx10 < 0;
+    if (neg)
+    {
+        char_width = afb_table[AFB_DASH_PTR].width;
+        ptr = afb_table[AFB_DASH_PTR].bitmap;
+        Xpoint = Paint_DrawAgencyFBChar(Xpoint, Ypoint, ptr, char_width, Color_Foreground, Color_Background);
+
+        Numberx10 = -Numberx10;
+    }
+
+    /** Extract each digit */
+    Numberx10 %= 1000;
+    d2 = Numberx10 / 100;
+    d1 = Numberx10 % 100 / 10;
+    d0 = Numberx10 % 10;
+
+    /** Display x-.-, omit if zero */
+    if (d2 != 0)
+    {
+        char_width = afb_table[d2].width;
+        ptr = afb_table[d2].bitmap;
+        Xpoint = Paint_DrawAgencyFBChar(Xpoint, Ypoint, ptr, char_width, Color_Foreground, Color_Background);
+    }
+    /** Display -x.- */
+    char_width = afb_table[d1].width;
+    ptr = afb_table[d1].bitmap;
+    Xpoint = Paint_DrawAgencyFBChar(Xpoint, Ypoint, ptr, char_width, Color_Foreground, Color_Background);
+    /** Display 1 decimal if positive, else omit */
+    if (!neg)
+    {
+        /** Display decimal point */
+        char_width = afb_table[AFB_DOT_PTR].width;
+        ptr = afb_table[AFB_DOT_PTR].bitmap;
+        Xpoint = Paint_DrawAgencyFBChar(Xpoint, Ypoint, ptr, char_width, Color_Foreground, Color_Background);
+
+        /** Display decimal digit */
+        char_width = afb_table[d0].width;
+        ptr = afb_table[d0].bitmap;
+        Xpoint = Paint_DrawAgencyFBChar(Xpoint, Ypoint, ptr, char_width, Color_Foreground, Color_Background);
+    }
+
+    return Xpoint;
+}
+
 /******************************************************************************
 function:	Display nummber (Able to display decimals)
 parameter:
@@ -963,3 +1064,45 @@ void Paint_DrawBitMap_Block(const unsigned char* image_buffer, uint8_t Region)
 		}
 }
 
+uint16_t Paint_DrawIcon(uint16_t Xpoint, uint16_t Ypoint, const icon_t * picon,
+                        uint16_t Color_Foreground, uint16_t Color_Background)
+{
+    uint16_t row, col;
+    const uint8_t * ptr;
+
+    for (row = 0; row < picon->height; row ++)
+    {
+        ptr = picon->bitmap + row * ICON_MAX_WIDTH;
+
+        for (col = 0; col < picon->width; ++col)
+        {
+            //To determine whether the font background color and screen background color is consistent
+            if (FONT_BACKGROUND == Color_Background)
+            { //this process is to speed up the scan
+                if (*ptr & (0x80 >> (col % 8)))
+                    Paint_SetPixel(Xpoint + col, Ypoint + row, Color_Foreground);
+                    // Paint_DrawPoint(Xpoint + Column, Ypoint + Row, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+            }
+            else
+            {
+                if (*ptr & (0x80 >> (col % 8)))
+                {
+                    Paint_SetPixel(Xpoint + col, Ypoint + row, Color_Foreground);
+                    // Paint_DrawPoint(Xpoint + Column, Ypoint + Row, Color_Foreground, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                }
+                else
+                {
+                    Paint_SetPixel(Xpoint + col, Ypoint + row, Color_Background);
+                    // Paint_DrawPoint(Xpoint + Column, Ypoint + Row, Color_Background, DOT_PIXEL_DFT, DOT_STYLE_DFT);
+                }
+            }
+
+            //One pixel is 8 bits
+            if (col % 8 == 7)
+                ++ptr;
+
+        }// Write a line
+    }// Write all
+
+    return Xpoint + picon->width;
+}

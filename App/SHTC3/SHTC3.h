@@ -8,7 +8,9 @@
 #define SHTC3_SDA_Pin LL_GPIO_PIN_7
 #define SHTC3_GPIO_Port GPIOB
 
-#define SHTC3_ADDR      (0x70)
+#define SHTC3_ADDR                  (0x70)
+
+#define SHTC3_MAX_DATA_RECORD_LEN   (200)
 
 void IIC_Init();
 

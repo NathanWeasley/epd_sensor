@@ -20,12 +20,8 @@ void task_sensor()
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     GPIOB->BRR = LL_GPIO_PIN_2;
 
-    GPIOB->BSRR = LL_GPIO_PIN_2;
     EPD_Init();
-    GPIOB->BRR = LL_GPIO_PIN_2;
-    GPIOB->BSRR = LL_GPIO_PIN_2;
     EPD_Clear();
-    GPIOB->BRR = LL_GPIO_PIN_2;
 
     LL_mDelay(500);
 
@@ -35,12 +31,16 @@ void task_sensor()
     Paint_NewImage(img, EPD_WIDTH, EPD_HEIGHT, 90, WHITE);
     Paint_SelectImage(img);
     Paint_Clear(WHITE);
-    Paint_DrawPoint(5, 70, BLACK, DOT_PIXEL_1X1, DOT_STYLE_DFT);
-    Paint_DrawPoint(5, 80, BLACK, DOT_PIXEL_2X2, DOT_STYLE_DFT);
-    Paint_DrawLine(20, 70, 50, 100, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
-    Paint_DrawLine(50, 70, 20, 100, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
-    Paint_DrawRectangle(60, 70, 90, 100, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawCircle(125, 85, 15, BLACK, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
+    // Paint_DrawPoint(5, 70, BLACK, DOT_PIXEL_1X1, DOT_STYLE_DFT);
+    // Paint_DrawPoint(5, 80, BLACK, DOT_PIXEL_2X2, DOT_STYLE_DFT);
+    // Paint_DrawLine(20, 70, 50, 100, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+    // Paint_DrawLine(50, 70, 20, 100, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+    // Paint_DrawRectangle(60, 70, 90, 100, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    // Paint_DrawCircle(125, 85, 15, BLACK, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(0, 66, 23, 121, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(24, 115, 225, 121, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(226, 66, 249, 121, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawAgencyFBNumber(0, 0, 143, BLACK, WHITE);
     EPD_UpdateBlack(img);
 
     GPIOB->BRR = LL_GPIO_PIN_2;
@@ -48,14 +48,15 @@ void task_sensor()
 
     /** Paint red part */
     Paint_Clear(WHITE);
-    Paint_DrawPoint(5, 90, RED, DOT_PIXEL_3X3, DOT_STYLE_DFT);
-    Paint_DrawPoint(5, 100, RED, DOT_PIXEL_4X4, DOT_STYLE_DFT);
-    Paint_DrawLine(125, 70, 125, 100, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
-    Paint_DrawLine(110, 85, 140, 85, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
-    Paint_DrawRectangle(20, 70, 50, 100, RED, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
-    Paint_DrawCircle(165, 85, 15, RED, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawString_EN(5, 0, "waveshare Electronics", &Font12, BLACK, WHITE);
-    Paint_DrawNum(5, 50, 987654321, &Font16, WHITE, RED);
+    // Paint_DrawPoint(5, 90, RED, DOT_PIXEL_3X3, DOT_STYLE_DFT);
+    // Paint_DrawPoint(5, 100, RED, DOT_PIXEL_4X4, DOT_STYLE_DFT);
+    // Paint_DrawLine(125, 70, 125, 100, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
+    // Paint_DrawLine(110, 85, 140, 85, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
+    // Paint_DrawRectangle(20, 70, 50, 100, RED, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
+    // Paint_DrawCircle(165, 85, 15, RED, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    // Paint_DrawString_EN(5, 0, "waveshare Electronics", &Font12, BLACK, WHITE);
+    // Paint_DrawNum(5, 50, 987654321, &Font16, WHITE, RED);
+    Paint_DrawAgencyFBNumber(130, 0, -12, RED, WHITE);
     EPD_UpdateRed(img);
 
     GPIOB->BRR = LL_GPIO_PIN_2;

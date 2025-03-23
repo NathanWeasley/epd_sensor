@@ -10,6 +10,8 @@
 #define IIC_ACK     0
 #define IIC_NACK    1
 
+static int16_t tempx10[SHTC3_MAX_DATA_RECORD_LEN];
+
 inline void IIC_Delay(uint8_t us)
 {
     __NOP(); __NOP(); __NOP(); __NOP();

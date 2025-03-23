@@ -59,8 +59,8 @@ App/Graphics/font12.c \
 App/Graphics/font16.c \
 App/Graphics/font20.c \
 App/Graphics/font24.c \
-App/Graphics/font12CN.c \
-App/Graphics/font24CN.c \
+App/Graphics/font_AgencyFB.c \
+App/Graphics/icon.c \
 App/Task/task.c
 
 # ASM sources
