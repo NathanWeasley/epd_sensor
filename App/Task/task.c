@@ -20,7 +20,7 @@
 #define GUI_RYAXIS_XBEGIN       (EPD_HEIGHT - GUI_YAXIS_WIDTH)
 #define GUI_RYAXIS_XEND         (EPD_HEIGHT - 1)
 #define GUI_XAXIS_HEIGHT        (6)
-#define GUI_XAXIS_YBEGIN        (EPD_HEIGHT - GUI_XAXIS_HEIGHT)
+#define GUI_XAXIS_YBEGIN        (EPD_WIDTH - GUI_XAXIS_HEIGHT)
 #define GUI_XAXIS_YEND          (GUI_XAXIS_YBEGIN + GUI_XAXIS_HEIGHT - 1)
 #define GUI_PLOT_XBEGIN         (GUI_LYAXIS_XBEGIN + GUI_YAXIS_WIDTH)
 #define GUI_PLOT_WIDTH          (EPD_HEIGHT - 2*GUI_YAXIS_WIDTH)
@@ -92,10 +92,11 @@ void Task_Test()
 
     width = Paint_DrawAFBNumber(0, 0, temperature, BLACK, WHITE);
     Paint_DrawIcon(width, 0, &(icon_table[ICON_DEGC]), BLACK, WHITE);
-    width = Paint_FindNumberWidth(T_max, &Font12);
+    width = Paint_FindNumberWidth(T_max, &Font12) - Font12.Width;
     Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YBEGIN, T_max, &Font12, WHITE, BLACK);
-    width = Paint_FindNumberWidth(T_min, &Font12);
+    width = Paint_FindNumberWidth(T_min, &Font12) - Font12.Width;
     Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YEND+1 - GUI_XAXIS_HEIGHT - Font12.Height, T_min, &Font12, WHITE, BLACK);
+    //Paint_DrawIcon(EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2, GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2, &(icon_table[ICON_NOBAT]), BLACK, WHITE);
     
     if (GPIOA->IDR & LL_GPIO_PIN_0)
     {
