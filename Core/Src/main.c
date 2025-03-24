@@ -100,6 +100,7 @@ int main(void)
   MX_RTC_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+  Task_Init();
   Task_Test();
   /* USER CODE END 2 */
 
