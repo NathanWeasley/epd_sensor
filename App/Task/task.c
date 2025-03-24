@@ -26,10 +26,13 @@ void Task_Init()
 
 
     /** EPD init */
-    EPD_Init();
-    EPD_Clear();
+    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    {
+        EPD_Init();
+        EPD_Clear();
 
-    LL_mDelay(500);
+        LL_mDelay(500);
+    }
 }
 
 void Task_UpdateMeasurement()
@@ -77,7 +80,10 @@ void Task_Test()
     width = Paint_FindNumberWidth(T_min, &Font12);
     Paint_DrawNum(GUI_GRAPH_BLOCK_WIDTH - width, EPD_WIDTH - Font12.Height - 7, T_min, &Font12, WHITE, BLACK);
     
-    EPD_UpdateBlack(img);
+    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    {
+        EPD_UpdateBlack(img);
+    }
 
     /** Paint red part */
     Paint_Clear(WHITE);
@@ -92,12 +98,18 @@ void Task_Test()
     Paint_DrawAFBNumber(width, 0, humidity, RED, WHITE);
     Paint_DrawIcon(EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2, 66 + (56-icon_table[ICON_NOBAT].height)/2, &(icon_table[ICON_NOBAT]), RED, WHITE);
     
-    EPD_UpdateRed(img);
+    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    {
+        EPD_UpdateRed(img);
+    }
 
     GPIOB->BRR = LL_GPIO_PIN_2;
 
     /** Update display */
-    EPD_TurnOnDisplay();
+    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    {
+        EPD_TurnOnDisplay();
+    }
 }
 
 void Task_PrepareForSleep()

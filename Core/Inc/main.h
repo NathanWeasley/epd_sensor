@@ -75,7 +75,7 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BATT_IN_Pin LL_GPIO_PIN_0
+#define BATT_IN_Pin LL_GPIO_PIN_1
 #define BATT_IN_GPIO_Port GPIOA
 #define EPD_PWR_Pin LL_GPIO_PIN_10
 #define EPD_PWR_GPIO_Port GPIOA
@@ -95,6 +95,9 @@ void Error_Handler(void);
 #define KEY_B_GPIO_Port GPIOA
 #define KEY_A_Pin LL_GPIO_PIN_9
 #define KEY_A_GPIO_Port GPIOA
+
+#define EPD_DEBUG_Pin LL_GPIO_PIN_0
+#define EPD_DEBUG_GPIO_Port GPIOA
 
 #ifndef NVIC_PRIORITYGROUP_0
 #define NVIC_PRIORITYGROUP_0         ((uint32_t)0x00000007) /*!< 0 bit  for pre-emption priority,
