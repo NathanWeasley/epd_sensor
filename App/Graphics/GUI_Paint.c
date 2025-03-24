@@ -876,12 +876,12 @@ uint16_t Paint_FindNumberWidth(int32_t Numberx10, const sFONT * pfont)
     /** Display -x.- */
     total_width += pfont ? pfont->Width : afb_table[d1].width;
     /** Display 1 decimal if positive, else omit */
-    if (!neg)
+    if (!neg && d0 > 0)
     {
         /** Display decimal point */
         total_width += pfont ? pfont->Width : afb_table[AFB_DOT_PTR].width;
         /** Display decimal digit */
-        total_width = pfont ? pfont->Width : afb_table[d0].width;
+        total_width += pfont ? pfont->Width : afb_table[d0].width;
     }
 
     return total_width;

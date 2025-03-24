@@ -7,7 +7,24 @@
 
 #include <stdio.h>
 
-#define GUI_GRAPH_BLOCK_WIDTH   (24)
+#define GUI_UPPER_YBEGIN        (0)
+#define GUI_UPPER_HEIGHT        (64)
+#define GUI_UPPER_YEND          (GUI_UPPER_YBEGIN + GUI_UPPER_HEIGHT - 1)
+#define GUI_LOWER_YBEGIN        (GUI_UPPER_HEIGHT + 2)
+#define GUI_LOWER_HEIGHT        (EPD_WIDTH - GUI_LOWER_YBEGIN)
+#define GUI_LOWER_YEND          (GUI_LOWER_YBEGIN + GUI_LOWER_HEIGHT - 1)
+
+#define GUI_YAXIS_WIDTH         (24)
+#define GUI_LYAXIS_XBEGIN       (0)
+#define GUI_LYAXIS_XEND         (GUI_LYAXIS_XBEGIN + GUI_YAXIS_WIDTH - 1)
+#define GUI_RYAXIS_XBEGIN       (EPD_HEIGHT - GUI_YAXIS_WIDTH)
+#define GUI_RYAXIS_XEND         (EPD_HEIGHT - 1)
+#define GUI_XAXIS_HEIGHT        (6)
+#define GUI_XAXIS_YBEGIN        (EPD_HEIGHT - GUI_XAXIS_HEIGHT)
+#define GUI_XAXIS_YEND          (GUI_XAXIS_YBEGIN + GUI_XAXIS_HEIGHT - 1)
+#define GUI_PLOT_XBEGIN         (GUI_LYAXIS_XBEGIN + GUI_YAXIS_WIDTH)
+#define GUI_PLOT_WIDTH          (EPD_HEIGHT - 2*GUI_YAXIS_WIDTH)
+#define GUI_PLOT_XEND           (GUI_PLOT_XBEGIN + GUI_PLOT_WIDTH - 1)
 
 void Task_Init()
 {
@@ -43,7 +60,7 @@ void Task_UpdateMeasurement()
 void Task_Test()
 {
     uint16_t width, height;
-    int16_t temperature = 143, humidity = -12;
+    int16_t temperature = -143, humidity = 370;
     int16_t T_max = 25, T_min = -10, H_max = 44, H_min = 7;
     uint8_t * img = NULL;
 
@@ -56,8 +73,8 @@ void Task_Test()
     Paint_SelectImage(img);
     Paint_Clear(WHITE);
 
-    Paint_DrawRectangle(0, 66, 23, 121, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawRectangle(24, 115, 225, 121, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(GUI_LYAXIS_XBEGIN, GUI_LOWER_YBEGIN, GUI_LYAXIS_XEND, GUI_LOWER_YEND, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(GUI_PLOT_XBEGIN, GUI_XAXIS_YBEGIN, GUI_PLOT_XEND, GUI_XAXIS_YEND, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     Paint_DrawLine(24, 66, 225, 66, BLACK, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
     Paint_DrawLine(24, 76, 225, 76, BLACK, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
     Paint_DrawLine(24, 86, 225, 86, BLACK, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
@@ -76,9 +93,9 @@ void Task_Test()
     width = Paint_DrawAFBNumber(0, 0, temperature, BLACK, WHITE);
     Paint_DrawIcon(width, 0, &(icon_table[ICON_DEGC]), BLACK, WHITE);
     width = Paint_FindNumberWidth(T_max, &Font12);
-    Paint_DrawNum(GUI_GRAPH_BLOCK_WIDTH - width, 66, T_max, &Font12, WHITE, BLACK);
+    Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YBEGIN, T_max, &Font12, WHITE, BLACK);
     width = Paint_FindNumberWidth(T_min, &Font12);
-    Paint_DrawNum(GUI_GRAPH_BLOCK_WIDTH - width, EPD_WIDTH - Font12.Height - 7, T_min, &Font12, WHITE, BLACK);
+    Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YEND+1 - GUI_XAXIS_HEIGHT - Font12.Height, T_min, &Font12, WHITE, BLACK);
     
     if (GPIOA->IDR & LL_GPIO_PIN_0)
     {
@@ -88,15 +105,15 @@ void Task_Test()
     /** Paint red part */
     Paint_Clear(WHITE);
 
-    Paint_DrawRectangle(226, 66, 249, 121, RED, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawNum(226, 66, H_max, &Font12, WHITE, RED);
-    Paint_DrawNum(226, EPD_WIDTH - Font12.Height, H_min, &Font12, WHITE, RED);
+    Paint_DrawRectangle(GUI_RYAXIS_XBEGIN, GUI_LOWER_YBEGIN, GUI_RYAXIS_XEND, GUI_LOWER_YEND, RED, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawNum(GUI_RYAXIS_XBEGIN, GUI_LOWER_YBEGIN, H_max, &Font12, WHITE, RED);
+    Paint_DrawNum(GUI_RYAXIS_XBEGIN, GUI_XAXIS_YEND+1 - GUI_XAXIS_HEIGHT - Font12.Height, H_min, &Font12, WHITE, RED);
     width = icon_table[ICON_PRH].width;
     height = icon_table[ICON_PRH].height;
     width += Paint_FindNumberWidth(humidity, NULL);
-    width = Paint_DrawIcon(EPD_HEIGHT - width, EPD_WIDTH - height - 7, &(icon_table[ICON_PRH]), RED, WHITE);
+    width = Paint_DrawIcon(EPD_HEIGHT - width, GUI_UPPER_YBEGIN + GUI_UPPER_HEIGHT - height, &(icon_table[ICON_PRH]), RED, WHITE);
     Paint_DrawAFBNumber(width, 0, humidity, RED, WHITE);
-    Paint_DrawIcon(EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2, 66 + (56-icon_table[ICON_NOBAT].height)/2, &(icon_table[ICON_NOBAT]), RED, WHITE);
+    Paint_DrawIcon(EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2, GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2, &(icon_table[ICON_NOBAT]), RED, WHITE);
     
     if (GPIOA->IDR & LL_GPIO_PIN_0)
     {
