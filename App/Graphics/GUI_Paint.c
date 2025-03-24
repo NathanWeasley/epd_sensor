@@ -73,7 +73,6 @@
 ******************************************************************************/
 #include "Graphics/GUI_Paint.h"
 #include "Graphics/font_AgencyFB.h"
-#include "Graphics/icon.h"
 #include "Utils/utils.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -705,32 +704,47 @@ parameter:
     Color_Background : Select the background color
 ******************************************************************************/
 #define  ARRAY_LEN 255
-void Paint_DrawNum(uint16_t Xpoint, uint16_t Ypoint, int32_t Nummber,
+void Paint_DrawNum(uint16_t Xpoint, uint16_t Ypoint, int32_t Number,
                    sFONT* Font, uint16_t Color_Foreground, uint16_t Color_Background)
 {
 
     int16_t Num_Bit = 0, Str_Bit = 0;
     uint8_t Str_Array[ARRAY_LEN] = {0}, Num_Array[ARRAY_LEN] = {0};
     uint8_t *pStr = Str_Array;
+    uint8_t neg;
 
     if (Xpoint > Paint.Width || Ypoint > Paint.Height) {
         Debug("Paint_DisNum Input exceeds the normal display range\r\n");
         return;
     }
 
+    neg = Number < 0;
+    if (neg)
+    {
+        Number = -Number;
+    }
+
     //Converts a number to a string
-    do {
-        Num_Array[Num_Bit] = Nummber % 10 + '0';
-        Num_Bit++;
-        Nummber /= 10;
-    } while(Nummber);
+    do
+    {
+        Num_Array[Num_Bit] = Number % 10 + '0';
+        ++Num_Bit;
+        Number /= 10;
+    } while (Number);
     
+    //Adds minus sign if number is negative
+    if (neg)
+    {
+        Str_Array[0] = '-';
+        ++Str_Bit;
+    }
 
     //The string is inverted
-    while (Num_Bit > 0) {
+    while (Num_Bit > 0)
+    {
         Str_Array[Str_Bit] = Num_Array[Num_Bit - 1];
-        Str_Bit ++;
-        Num_Bit --;
+        ++Str_Bit;
+        --Num_Bit;
     }
 
     //show
@@ -780,10 +794,10 @@ uint16_t Paint_DrawAgencyFBChar(uint16_t Xpoint, uint16_t Ypoint, const uint8_t 
     return Xpoint + width;
 }
 
-uint16_t Paint_DrawAgencyFBNumber(uint16_t Xpoint, uint16_t Ypoint, int32_t Numberx10,
+uint16_t Paint_DrawAFBNumber(uint16_t Xpoint, uint16_t Ypoint, int32_t Numberx10,
                     uint16_t Color_Foreground, uint16_t Color_Background)
 {
-    uint8_t neg, i, d2, d1, d0, char_width = 0;
+    uint8_t neg, d2, d1, d0, char_width = 0;
     const unsigned char *ptr = (void *)0;
 
     if (Xpoint > Paint.Width || Ypoint > Paint.Height)
@@ -834,6 +848,43 @@ uint16_t Paint_DrawAgencyFBNumber(uint16_t Xpoint, uint16_t Ypoint, int32_t Numb
     }
 
     return Xpoint;
+}
+
+uint16_t Paint_FindNumberWidth(int32_t Numberx10, const sFONT * pfont)
+{
+    uint8_t neg, d2, d1, d0, total_width = 0;
+
+    /** If number is negative, display minus sign first */
+    neg = Numberx10 < 0;
+    if (neg)
+    {
+        total_width += pfont ? pfont->Width : afb_table[AFB_DASH_PTR].width;
+        Numberx10 = -Numberx10;
+    }
+
+    /** Extract each digit */
+    Numberx10 %= 1000;
+    d2 = Numberx10 / 100;
+    d1 = Numberx10 % 100 / 10;
+    d0 = Numberx10 % 10;
+
+    /** Display x-.-, omit if zero */
+    if (d2 != 0)
+    {
+        total_width += pfont ? pfont->Width : afb_table[d2].width;
+    }
+    /** Display -x.- */
+    total_width += pfont ? pfont->Width : afb_table[d1].width;
+    /** Display 1 decimal if positive, else omit */
+    if (!neg)
+    {
+        /** Display decimal point */
+        total_width += pfont ? pfont->Width : afb_table[AFB_DOT_PTR].width;
+        /** Display decimal digit */
+        total_width = pfont ? pfont->Width : afb_table[d0].width;
+    }
+
+    return total_width;
 }
 
 /******************************************************************************

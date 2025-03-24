@@ -1,6 +1,6 @@
 clear; clc;
 
-number = '%RH';
+number = 'charge';
 max_width_bytes = 6;
 
 %% Convert bitmap to binary code
@@ -26,7 +26,7 @@ for i = 1:1:m
 
         for k = 1:1:8
 
-            if linedata(j) > 0
+            if linedata(j) > 100
                 buf = buf + mask;
             end
             mask = mask / 2;
