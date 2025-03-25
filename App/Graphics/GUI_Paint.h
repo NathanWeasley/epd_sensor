@@ -203,7 +203,8 @@ void Paint_DrawNum(uint16_t Xpoint, uint16_t Ypoint, int32_t Nummber, sFONT* Fon
 void Paint_DrawNumDecimals(uint16_t Xpoint, uint16_t Ypoint, double Nummber, sFONT* Font, uint16_t Digit, uint16_t Color_Foreground, uint16_t Color_Background); // Able to display decimals
 void Paint_DrawTime(uint16_t Xstart, uint16_t Ystart, PAINT_TIME *pTime, sFONT* Font, uint16_t Color_Foreground, uint16_t Color_Background);
 uint16_t Paint_DrawAFBNumber(uint16_t Xpoint, uint16_t Ypoint, int32_t Numberx10, uint16_t Color_Foreground, uint16_t Color_Background);
-uint16_t Paint_FindNumberWidth(int32_t Numberx10, const sFONT * pfont);
+uint16_t Paint_FindAFBNumberWidth(int32_t Numberx10);
+uint16_t Paint_FindNumberWidth(int32_t Number, const sFONT * pfont);
 
 //pic
 void Paint_DrawBitMap(const unsigned char* image_buffer);

@@ -50,7 +50,8 @@ Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_rtc.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_spi.c \
 Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_ll_pwr.c \
 Core/Src/system_stm32l0xx.c  \
-App/SHTC3/SHTC3.c \
+App/SHTC3/SHTC3_driver.c \
+App/SHTC3/SHTC3_api.c \
 App/EPD/epd_driver.c \
 App/EPD/epd_api.c \
 App/Graphics/GUI_Paint.c \

@@ -1,6 +1,7 @@
 {
     "files.associations": {
-        "gui_paint.h": "c"
+        "gui_paint.h": "c",
+        "core_cm0plus.h": "c"
     },
     "stm32-for-vscode.openOCDPath": false
 }

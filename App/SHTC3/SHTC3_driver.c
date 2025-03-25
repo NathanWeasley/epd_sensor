@@ -1,5 +1,9 @@
-#include "SHTC3.h"
+#include "SHTC3_driver.h"
 #include "core_cm0plus.h"
+
+#define SHTC3_SCL_Pin LL_GPIO_PIN_6
+#define SHTC3_SDA_Pin LL_GPIO_PIN_7
+#define SHTC3_GPIO_Port GPIOB
 
 #define SDA_H       (SHTC3_GPIO_Port->BSRR = SHTC3_SDA_Pin)
 #define SDA_L       (SHTC3_GPIO_Port->BRR =  SHTC3_SDA_Pin)
@@ -10,7 +14,7 @@
 #define IIC_ACK     0
 #define IIC_NACK    1
 
-static int16_t tempx10[SHTC3_MAX_DATA_RECORD_LEN];
+#define SHTC3_ADDR  (0x70)
 
 inline void IIC_Delay(uint8_t us)
 {
@@ -161,8 +165,3 @@ uint8_t IIC_ReadByte(uint8_t ack)
 
 
 
-
-void SHTC3_Init()
-{
-    IIC_Init();
-}

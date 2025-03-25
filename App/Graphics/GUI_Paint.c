@@ -850,7 +850,7 @@ uint16_t Paint_DrawAFBNumber(uint16_t Xpoint, uint16_t Ypoint, int32_t Numberx10
     return Xpoint;
 }
 
-uint16_t Paint_FindNumberWidth(int32_t Numberx10, const sFONT * pfont)
+uint16_t Paint_FindAFBNumberWidth(int32_t Numberx10)
 {
     uint8_t neg, d2, d1, d0, total_width = 0;
 
@@ -858,7 +858,7 @@ uint16_t Paint_FindNumberWidth(int32_t Numberx10, const sFONT * pfont)
     neg = Numberx10 < 0;
     if (neg)
     {
-        total_width += pfont ? pfont->Width : afb_table[AFB_DASH_PTR].width;
+        total_width += afb_table[AFB_DASH_PTR].width;
         Numberx10 = -Numberx10;
     }
 
@@ -871,17 +871,37 @@ uint16_t Paint_FindNumberWidth(int32_t Numberx10, const sFONT * pfont)
     /** Display x-.-, omit if zero */
     if (d2 != 0)
     {
-        total_width += pfont ? pfont->Width : afb_table[d2].width;
+        total_width += afb_table[d2].width;
     }
     /** Display -x.- */
-    total_width += pfont ? pfont->Width : afb_table[d1].width;
+    total_width += afb_table[d1].width;
     /** Display 1 decimal if positive, else omit */
     if (!neg && d0 > 0)
     {
         /** Display decimal point */
-        total_width += pfont ? pfont->Width : afb_table[AFB_DOT_PTR].width;
+        total_width += afb_table[AFB_DOT_PTR].width;
         /** Display decimal digit */
-        total_width += pfont ? pfont->Width : afb_table[d0].width;
+        total_width += afb_table[d0].width;
+    }
+
+    return total_width;
+}
+
+uint16_t Paint_FindNumberWidth(int32_t Number, const sFONT * pfont)
+{
+    uint8_t fwidth = pfont->Width, total_width = fwidth;
+
+    /** If number is negative, display minus sign first */
+    if (Number < 0)
+    {
+        total_width += fwidth;
+        Number = -Number;
+    }
+
+    /** Display 10-digit, omit if zero */
+    if (Number / 10 > 0)
+    {
+        total_width += fwidth;
     }
 
     return total_width;
