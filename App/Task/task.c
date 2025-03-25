@@ -3,6 +3,7 @@
 #include "EPD/epd_driver.h"
 #include "Graphics/GUI_Paint.h"
 #include "Graphics/icon.h"
+#include "SHTC3/SHTC3_api.h"
 #include "stm32l0xx_ll_utils.h"
 
 #include <stdio.h>
@@ -36,6 +37,8 @@
 void Task_Init()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+    uint16_t shtc3_id = 0;
+    float temp, humi;
 
     /** Debugging */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_2;
@@ -46,8 +49,16 @@ void Task_Init()
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     GPIOB->BRR = LL_GPIO_PIN_2;
 
-    /** SHTC3 init */
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIOA->BSRR = LL_GPIO_PIN_1;
 
+    /** SHTC3 init */
+    SHTC3_Init();
 
     /** EPD init */
     if (GPIOA->IDR & LL_GPIO_PIN_0)
@@ -69,7 +80,14 @@ void Task_Test()
     uint16_t width, height;
     int16_t temperature = -143, humidity = 370;
     int16_t T_max = 25, T_min = -10, H_max = 44, H_min = 7;
+    float temp, humi;
     uint8_t * img = NULL;
+
+    SHTC3_WakeUp();
+    SHTC3_GetTempAndHumi(&temp, &humi);
+    SHTC3_Sleep();
+    temperature = (int16_t)(temp*10);
+    humidity = (int16_t)(humi)*10;
 
     GPIOB->BSRR = LL_GPIO_PIN_2;
 

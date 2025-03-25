@@ -11,14 +11,14 @@
 #define SCL_L       (SHTC3_GPIO_Port->BRR =  SHTC3_SCL_Pin)
 #define SDA_READ    (SHTC3_GPIO_Port->IDR & SHTC3_SDA_Pin)
 #define SCL_READ    (SHTC3_GPIO_Port->IDR & SHTC3_SCL_Pin)
-#define IIC_ACK     0
-#define IIC_NACK    1
-
-#define SHTC3_ADDR  (0x70)
 
 inline void IIC_Delay(uint8_t us)
 {
-    __NOP(); __NOP(); __NOP(); __NOP();
+    uint8_t i;
+    for (i = 0; i < 7; ++i)
+    {
+        __NOP(); __NOP(); __NOP(); __NOP();
+    }
 }
 
 void IIC_Init()
@@ -40,7 +40,7 @@ void IIC_Init()
     SCL_H;
 }
 
-inline void IIC_Start()
+void IIC_Start()
 {
     SDA_H;
     IIC_Delay(1);
@@ -57,7 +57,7 @@ inline void IIC_Start()
     IIC_Delay(10);
 }
 
-inline void IIC_Stop()
+void IIC_Stop()
 {
     SDA_L;
     IIC_Delay(1);
@@ -91,7 +91,7 @@ uint8_t IIC_SendByte(uint8_t byte)
         }
         IIC_Delay(1);
         SCL_H;
-        IIC_Delay(5);
+        IIC_Delay(1);
         SCL_L;
         IIC_Delay(1);
     }
@@ -132,7 +132,7 @@ uint8_t IIC_ReadByte(uint8_t ack)
     }
 
     /** Send ack */
-    if (ack == IIC_ACK)
+    if (ack == ACK)
     {
         SDA_L;
     }
@@ -143,7 +143,7 @@ uint8_t IIC_ReadByte(uint8_t ack)
     IIC_Delay(1);
 
     SCL_H;
-    IIC_Delay(5);
+    IIC_Delay(1);
     SCL_L;
 
     SDA_H;

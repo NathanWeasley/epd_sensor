@@ -75,7 +75,7 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BATT_IN_Pin LL_GPIO_PIN_1
+#define BATT_IN_Pin LL_GPIO_PIN_2
 #define BATT_IN_GPIO_Port GPIOA
 #define EPD_PWR_Pin LL_GPIO_PIN_10
 #define EPD_PWR_GPIO_Port GPIOA
