@@ -11,3 +11,15 @@ void SHTC3_Init()
 {
     IIC_Init();
 }
+
+
+
+const int16_t * GetTemperatureArray()
+{
+    return tempx10_array;
+}
+
+const uint8_t * GetHumidityArray()
+{
+    return humi_array;
+}
