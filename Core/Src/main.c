@@ -101,7 +101,8 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   Task_Init();
-  Task_Test();
+  Task_UpdateMeasurement();
+  Task_Display();
   /* USER CODE END 2 */
 
   /* Infinite loop */

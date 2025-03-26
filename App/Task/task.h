@@ -7,4 +7,7 @@ void Task_UpdateMeasurement();
 void Task_UpdateDisplay();
 void Task_PrepareForSleep();
 
-void Task_Test();
+void Task_Display();
+
+void LPM_StopWhileEPDUpdate();
+void LPM_StopUntilRTC();

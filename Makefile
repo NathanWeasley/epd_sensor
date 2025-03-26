@@ -62,6 +62,7 @@ App/Graphics/font20.c \
 App/Graphics/font24.c \
 App/Graphics/font_AgencyFB.c \
 App/Graphics/icon.c \
+App/Graphics/background.c \
 App/Task/task.c
 
 # ASM sources

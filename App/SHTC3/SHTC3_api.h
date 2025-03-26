@@ -36,5 +36,3 @@ shtc3_ret_e SHTC3_GetTempAndHumiPolling(float *temp, float *humi);
 
 void SHTC3_Measure(uint8_t times);
 
-const int16_t * GetTemperatureArray();
-const uint8_t * GetHumidityArray();

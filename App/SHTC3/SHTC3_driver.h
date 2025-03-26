@@ -4,8 +4,6 @@
 #include "stm32l0xx_ll_utils.h"
 #include "stm32l0xx_ll_bus.h"
 
-#define SHTC3_MAX_DATA_RECORD_LEN   (100)
-
 typedef enum
 {
     ACK = 0,

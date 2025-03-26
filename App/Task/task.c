@@ -30,9 +30,28 @@
 #define GUI_PLOT_WIDTH          (EPD_HEIGHT - 2*GUI_YAXIS_WIDTH)
 #define GUI_PLOT_XEND           (GUI_PLOT_XBEGIN + GUI_PLOT_WIDTH - 1)
 #define GUI_PLOT_AREA           (200)
-#define GUI_PLOT_GAP            (GUI_PLOT_AREA / STORAGE_SIZE)
+#define GUI_PLOT_GAP            (GUI_PLOT_AREA / SHTC3_MAX_DATA_RECORD_LEN)
 #define GUI_PLOT_YBEGIN         (GUI_LOWER_YBEGIN + 2)
 #define GUI_PLOT_HEIGHT         (GUI_LOWER_HEIGHT - GUI_XAXIS_HEIGHT - 4)
+
+#define SHTC3_TEMP_MIN_GAP      (50)
+#define SHTC3_HUMI_MIN_GAP      (10)
+#define SHTC3_MAX_DATA_RECORD_LEN   (100)
+static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN] = {0};
+static int16_t T_max = INT16_MIN, T_min = INT16_MAX;
+static int32_t T_numerator;
+static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN] = {0};
+static uint8_t H_max = 0, H_min = UINT8_MAX;
+static int32_t H_numerator;
+uint8_t array_idx = 0;
+
+typedef enum
+{
+    BATTERY_NORMAL = 0,
+    BATTERY_CRITICL = 1,
+    BATTERY_CHARGING = 2
+} battery_state_e;
+battery_state_e battery_flag = BATTERY_NORMAL;
 
 void Task_Init()
 {
@@ -72,32 +91,85 @@ void Task_Init()
 
 void Task_UpdateMeasurement()
 {
-    ;
-}
-
-void Task_Test()
-{
-    uint16_t width, height;
-    int16_t temperature = -143, humidity = 370;
-    int16_t T_max = 25, T_min = -10, H_max = 44, H_min = 7;
     float temp, humi;
-    uint8_t * img = NULL;
+    int16_t temp_buf, T_delta;
+    uint8_t humi_buf, H_delta;
 
+    /** Wakep sensor and read */
     SHTC3_WakeUp();
     SHTC3_GetTempAndHumi(&temp, &humi);
     SHTC3_Sleep();
-    temperature = (int16_t)(temp*10);
-    humidity = (int16_t)(humi)*10;
+
+    /** Sensor data processing */
+    temp_buf = (int16_t)(temp*10);
+    humi_buf = (uint8_t)humi;
+
+    /** Update extrema */
+    if (temp_buf > T_max)
+        T_max = temp_buf;
+    else if (temp_buf < T_min)
+        T_min = temp_buf;
+    if (humi_buf > H_max)
+        H_max = humi_buf;
+    else if (humi_buf < H_min)
+        H_min = humi_buf;
+
+    /** Limit extrema */
+    if (T_max - T_min < SHTC3_TEMP_MIN_GAP)
+    {
+        T_delta = T_max - T_min;
+        T_max += (SHTC3_TEMP_MIN_GAP - T_delta)/2;
+        T_min -= (SHTC3_TEMP_MIN_GAP - T_delta)/2;
+    }
+    if (H_max - H_min < SHTC3_HUMI_MIN_GAP)
+    {
+        H_delta = H_max - H_min;
+        H_max += (SHTC3_HUMI_MIN_GAP - H_delta)/2;
+        H_min -= (SHTC3_HUMI_MIN_GAP - H_delta)/2;
+    }
+
+    /** Update precalculated bias and gain for display */
+    T_delta = T_max - T_min;
+    T_numerator = GUI_PLOT_YBEGIN*T_delta + T_max*GUI_PLOT_HEIGHT;
+    H_delta = H_max - H_min;
+    H_numerator = GUI_PLOT_YBEGIN*H_delta + H_max*GUI_PLOT_HEIGHT;
+
+    /** Write into array */
+    tempx10_array[array_idx] = temp_buf;
+    humi_array[array_idx] = humi_buf;
+    if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
+        array_idx = 0;
+
+    /** Battery */
+    // TODO
+}
+
+void Task_Display()
+{
+    uint16_t width, height, width_prev, height_prev, delta;
+    uint8_t idx = array_idx == 0 ? SHTC3_MAX_DATA_RECORD_LEN - 1 : array_idx - 1;
+    int16_t temperature = tempx10_array[idx], humidity = humi_array[idx]*10;
+    uint8_t * img = NULL;
+    uint8_t i, j;
+    const icon_t * picon = NULL;
 
     GPIOB->BSRR = LL_GPIO_PIN_2;
 
+    /** Preprocess */
     img = EPD_GetVRAM();
-
-    /** Paint black part */
     Paint_NewImage(img, EPD_WIDTH, EPD_HEIGHT, 90, WHITE);
     Paint_SelectImage(img);
-    Paint_Clear(WHITE);
+    if (battery_flag == BATTERY_CRITICL)
+    {
+        picon = &(icon_table[ICON_NOBAT]);
+    }
+    else if (battery_flag == BATTERY_CHARGING)
+    {
+        picon = &(icon_table[ICON_CHRG]);
+    }
 
+    /** Paint black part */
+    Paint_Clear(WHITE);     ///< TODO: Replace with background pouring
     Paint_DrawRectangle(GUI_LYAXIS_XBEGIN, GUI_LOWER_YBEGIN, GUI_LYAXIS_XEND, GUI_LOWER_YEND, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     Paint_DrawRectangle(GUI_PLOT_XBEGIN, GUI_XAXIS_YBEGIN, GUI_PLOT_XEND, GUI_XAXIS_YEND, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     Paint_DrawLine(24, 66, 225, 66, BLACK, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
@@ -123,19 +195,35 @@ void Task_Test()
     Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YEND+1 - GUI_XAXIS_HEIGHT - Font12.Height, T_min, &Font12, WHITE, BLACK);
     
     ///< Draw graph
-    // for (i = 0; i < STORAGE_SIZE; ++i)
-    // {
-    //     width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * i;
-    //     height = (uint16_t)((T_num - temp_array[i]*GUI_PLOT_HEIGHT) / (float)(T_max - T_min));
-    //     Paint_DrawPoint(width, height, BLACK, DOT_PIXEL_2X2, DOT_PIXEL_DFT);
-    // }
+    delta = T_max - T_min;
+    width_prev = 0;
+    height_prev = (uint16_t)((T_numerator - tempx10_array[array_idx]*GUI_PLOT_HEIGHT) / delta);
+    for (j = 1, i = array_idx+1; i < SHTC3_MAX_DATA_RECORD_LEN; ++i, ++j)
+    {
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        height = (uint16_t)((T_numerator - tempx10_array[i]*GUI_PLOT_HEIGHT) / delta);
+        Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+        width_prev = width;
+        height_prev = height;
+    }
+    for (i = 0; i < array_idx; ++i, ++j)
+    {
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        height = (uint16_t)((T_numerator - tempx10_array[i]*GUI_PLOT_HEIGHT) / delta);
+        Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+        width_prev = width;
+        height_prev = height;
+    }
 
-    Paint_DrawRectangle(
-        EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2,
-        GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2 - 4,
-        EPD_HEIGHT/2 + icon_table[ICON_NOBAT].width/2,
-        GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2 + icon_table[ICON_NOBAT].height - 4,
-        WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    if (picon)
+    {
+        Paint_DrawRectangle(
+            EPD_HEIGHT/2 - picon->width/2,
+            GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-picon->height)/2 - 4,
+            EPD_HEIGHT/2 + picon->width/2,
+            GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-picon->height)/2 + picon->height - 4,
+            WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    }
 
     if (GPIOA->IDR & LL_GPIO_PIN_0)
     {
@@ -143,7 +231,7 @@ void Task_Test()
     }
 
     /** Paint red part */
-    Paint_Clear(WHITE);
+    Paint_Clear(WHITE);     ///< TODO: Replace with background pouring
 
     Paint_DrawRectangle(GUI_RYAXIS_XBEGIN, GUI_LOWER_YBEGIN, GUI_RYAXIS_XEND, GUI_LOWER_YEND, RED, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     Paint_DrawNum(GUI_RYAXIS_XBEGIN, GUI_LOWER_YBEGIN, H_max, &Font12, WHITE, RED);
@@ -155,24 +243,40 @@ void Task_Test()
     Paint_DrawAFBNumber(width, 0, humidity, RED, WHITE);
     
     ///< Draw graph
-    // for (i = 0; i < STORAGE_SIZE; ++i)
-    // {
-    //     width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * i;
-    //     height = (uint16_t)((H_num - humi_array[i]*GUI_PLOT_HEIGHT) / (float)(H_max - H_min));
-    //     Paint_DrawPoint(width, height, RED, DOT_PIXEL_1X1, DOT_PIXEL_DFT);
-    // }
+    delta = H_max - H_min;
+    width_prev = 0;
+    height_prev = (uint16_t)((H_numerator - humi_array[array_idx]*GUI_PLOT_HEIGHT) / delta);
+    for (j = 1, i = array_idx+1; i < SHTC3_MAX_DATA_RECORD_LEN; ++i, ++j)
+    {
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        height = (uint16_t)((H_numerator - humi_array[i]*GUI_PLOT_HEIGHT) / delta);
+        Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+        width_prev = width;
+        height_prev = height;
+    }
+    for (i = 0; i < array_idx; ++i, ++j)
+    {
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        height = (uint16_t)((H_numerator - humi_array[i]*GUI_PLOT_HEIGHT) / delta);
+        Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+        width_prev = width;
+        height_prev = height;
+    }
 
-    Paint_DrawRectangle(
-        EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2,
-        GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2 - 4,
-        EPD_HEIGHT/2 + icon_table[ICON_NOBAT].width/2,
-        GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2 + icon_table[ICON_NOBAT].height - 4,
-        WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    if (picon)
+    {
+        Paint_DrawRectangle(
+            EPD_HEIGHT/2 - picon->width/2,
+            GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-picon->height)/2 - 4,
+            EPD_HEIGHT/2 + picon->width/2,
+            GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-picon->height)/2 + picon->height - 4,
+            WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
 
-    Paint_DrawIcon(
-        EPD_HEIGHT/2 - icon_table[ICON_NOBAT].width/2,
-        GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-icon_table[ICON_NOBAT].height)/2 - 4,
-        &(icon_table[ICON_NOBAT]), RED, WHITE);
+        Paint_DrawIcon(
+            EPD_HEIGHT/2 - picon->width/2,
+            GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-picon->height)/2 - 4,
+            &(icon_table[ICON_NOBAT]), RED, WHITE);
+    }
 
     if (GPIOA->IDR & LL_GPIO_PIN_0)
     {

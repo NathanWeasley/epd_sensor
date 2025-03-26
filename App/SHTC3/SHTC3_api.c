@@ -2,13 +2,6 @@
 
 #define CRC_POLYNOMIAL  0x131 // P(x) = x^8 + x^5 + x^4 + 1 = 100110001
 
-static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN];
-static int16_t T_max, T_min;
-static int32_t T_numerator;
-static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN];
-static int16_t H_max, H_min;
-static int32_t H_numerator;
-
 void SHTC3_Init()
 {
     IIC_Init();
@@ -248,14 +241,4 @@ shtc3_ret_e SHTC3_GetTempAndHumiPolling(float *temp, float *humi)
     }
 
     return ret;
-}
-
-const int16_t * GetTemperatureArray()
-{
-    return tempx10_array;
-}
-
-const uint8_t * GetHumidityArray()
-{
-    return humi_array;
 }
