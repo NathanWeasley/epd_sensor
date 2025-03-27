@@ -83,9 +83,9 @@ void Task_Init()
     if (GPIOA->IDR & LL_GPIO_PIN_0)
     {
         EPD_Init();
-        EPD_Clear();
+        // EPD_Clear();
 
-        LL_mDelay(500);
+        // LL_mDelay(500);
     }
 }
 
@@ -107,11 +107,11 @@ void Task_UpdateMeasurement()
     /** Update extrema */
     if (temp_buf > T_max)
         T_max = temp_buf;
-    else if (temp_buf < T_min)
+    if (temp_buf < T_min)
         T_min = temp_buf;
     if (humi_buf > H_max)
         H_max = humi_buf;
-    else if (humi_buf < H_min)
+    if (humi_buf < H_min)
         H_min = humi_buf;
 
     /** Limit extrema */
