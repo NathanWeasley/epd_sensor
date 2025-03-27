@@ -189,10 +189,10 @@ void Task_Display()
 
     width = Paint_DrawAFBNumber(0, 0, temperature, BLACK, WHITE);
     Paint_DrawIcon(width, 0, &(icon_table[ICON_DEGC]), BLACK, WHITE);
-    width = Paint_FindNumberWidth(T_max, &Font12);
-    Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YBEGIN, T_max, &Font12, WHITE, BLACK);
-    width = Paint_FindNumberWidth(T_min, &Font12);
-    Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YEND+1 - GUI_XAXIS_HEIGHT - Font12.Height, T_min, &Font12, WHITE, BLACK);
+    width = Paint_FindNumberWidth(T_max/10, &Font12);
+    Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YBEGIN, T_max/10, &Font12, WHITE, BLACK);
+    width = Paint_FindNumberWidth(T_min/10, &Font12);
+    Paint_DrawNum(GUI_YAXIS_WIDTH - width, GUI_LOWER_YEND+1 - GUI_XAXIS_HEIGHT - Font12.Height, T_min/10, &Font12, WHITE, BLACK);
     
     ///< Draw graph
     delta = T_max - T_min;

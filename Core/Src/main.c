@@ -101,8 +101,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   Task_Init();
-  Task_UpdateMeasurement();
-  Task_Display();
+  // Task_UpdateMeasurement();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,7 +109,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+    Task_UpdateMeasurement();
+    Task_Display();
+    LL_mDelay(1000*600);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
