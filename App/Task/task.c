@@ -5,6 +5,7 @@
 #include "Graphics/icon.h"
 #include "SHTC3/SHTC3_api.h"
 #include "stm32l0xx_ll_utils.h"
+#include "stm32l0xx_ll_pwr.h"
 
 #include <stdio.h>
 
@@ -65,6 +66,14 @@ void Task_Init()
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /** Voltage divider */
+    GPIOA->BRR = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /** SHTC3 init */
     SHTC3_Init();
@@ -284,11 +293,56 @@ void Task_Display()
 
 void Task_PrepareForSleep()
 {
+    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
     /** EPD Power down */
     EPD_SetPower(0);
 
     /** SHTC3 in sleep mode */
-    ;
+    SHTC3_Sleep();
+
+    /** Unused GPIOs all into analog input mode */
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_10 | LL_GPIO_PIN_9 | LL_GPIO_PIN_8 |
+                          LL_GPIO_PIN_7 | LL_GPIO_PIN_6 | LL_GPIO_PIN_5 | LL_GPIO_PIN_4 |
+                          LL_GPIO_PIN_3 | LL_GPIO_PIN_2 | LL_GPIO_PIN_1 | LL_GPIO_PIN_0;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_0 | LL_GPIO_PIN_2 | LL_GPIO_PIN_3 | LL_GPIO_PIN_4 |
+                          LL_GPIO_PIN_5 | LL_GPIO_PIN_6 | LL_GPIO_PIN_7 | LL_GPIO_PIN_8 |
+                          LL_GPIO_PIN_9 | LL_GPIO_PIN_10 | LL_GPIO_PIN_11 | LL_GPIO_PIN_12 |
+                          LL_GPIO_PIN_13 | LL_GPIO_PIN_14 | LL_GPIO_PIN_15;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_13;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_0 | LL_GPIO_PIN_1;
+    LL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+    /** MOSFET switches set to close */
+    GPIOA->BRR = LL_GPIO_PIN_11;        ///< VBUS voltage divider
+    GPIOA->BRR = LL_GPIO_PIN_12;        ///< VBAT voltage divider
+    GPIOB->BSRR = LL_GPIO_PIN_1;        ///< EPD power switch (1=off, 0=on)
+
+    /** Stop GPIO clock */
+    LL_IOP_GRP1_DisableClock(LL_IOP_GRP1_PERIPH_GPIOC);
+    LL_IOP_GRP1_DisableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+    LL_IOP_GRP1_DisableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+
+    /** Stop Peripheral clocks */
+    LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_ADC1);
+    LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_SPI1);
 
     // __WFI();
+}
+
+void LPM_StopWhileEPDUpdate()
+{
+    ;
+}
+
+void LPM_StopUntilRTC()
+{
+    // LL_PWR_REGU_LPMODES_LOW_POWER
+    LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
+    LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
 }

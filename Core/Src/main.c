@@ -103,7 +103,7 @@ int main(void)
   Task_Init();
   // Task_UpdateMeasurement();
   /* USER CODE END 2 */
-
+  LL_mDelay(10000);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -111,7 +111,9 @@ int main(void)
     /* USER CODE END WHILE */
     Task_UpdateMeasurement();
     Task_Display();
-    LL_mDelay(1000*600);
+    Task_PrepareForSleep();
+
+    LPM_StopUntilRTC();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -467,6 +469,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_SetOutputPin(EPD_DC_GPIO_Port, EPD_DC_Pin);
 
   LL_GPIO_SetOutputPin(EPD_PWR_GPIO_Port, EPD_PWR_Pin);
+  LL_GPIO_ResetOutputPin(EPD_DEBUG_GPIO_Port, EPD_DEBUG_Pin);
 
   /**/
   GPIO_InitStruct.Pin = EPD_PWR_Pin;
