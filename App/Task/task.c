@@ -6,6 +6,10 @@
 #include "SHTC3/SHTC3_api.h"
 #include "stm32l0xx_ll_utils.h"
 #include "stm32l0xx_ll_pwr.h"
+#include "stm32l0xx_ll_cortex.h"
+#include "stm32l0xx_ll_system.h"
+#include "stm32l0xx_ll_exti.h"
+#include "stm32l0xx_ll_gpio.h"
 
 #include <stdio.h>
 
@@ -145,6 +149,8 @@ void Task_UpdateMeasurement()
 
 void Task_Display()
 {
+    LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
+
     uint16_t width, height, width_prev, height_prev, delta;
     uint8_t idx = array_idx == 0 ? SHTC3_MAX_DATA_RECORD_LEN - 1 : array_idx - 1;
     int16_t temperature = tempx10_array[idx], humidity = humi_array[idx]*10;
@@ -288,6 +294,32 @@ void Task_Display()
     if (EPD_GetSwitch())
     {
         EPD_TurnOnDisplay();
+        
+        while (!(GPIOB->IDR & LL_GPIO_PIN_0));      ///< Wait for BUSY pin to set
+
+        /** Set falling edge event on EPD_BUSY */
+        LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE0);
+        LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_0, LL_GPIO_PULL_NO);
+        LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
+        EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_0;
+        EXTI_InitStruct.LineCommand = ENABLE;
+        EXTI_InitStruct.Mode = LL_EXTI_MODE_EVENT;
+        EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
+        LL_EXTI_Init(&EXTI_InitStruct);
+
+        /** Enter stop mode and wait for wakeup by BUSY pin falling */
+        LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
+        LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
+        LL_LPM_EnableDeepSleep();
+        __WFE();
+
+        /** Recover MOSFET management pins to shutdown EPD */
+        LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+        LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_1);
+        LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_1, LL_GPIO_MODE_OUTPUT);
+        LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_1, LL_GPIO_SPEED_FREQ_LOW);
+        LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_1, LL_GPIO_PULL_NO);
+        LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_1, LL_GPIO_OUTPUT_PUSHPULL);
     }
 }
 
@@ -297,9 +329,6 @@ void Task_PrepareForSleep()
 
     /** EPD Power down */
     EPD_SetPower(0);
-
-    /** SHTC3 in sleep mode */
-    SHTC3_Sleep();
 
     /** Unused GPIOs all into analog input mode */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_10 | LL_GPIO_PIN_9 | LL_GPIO_PIN_8 |
@@ -331,8 +360,6 @@ void Task_PrepareForSleep()
     /** Stop Peripheral clocks */
     LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_ADC1);
     LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_SPI1);
-
-    // __WFI();
 }
 
 void LPM_StopWhileEPDUpdate()
@@ -342,7 +369,8 @@ void LPM_StopWhileEPDUpdate()
 
 void LPM_StopUntilRTC()
 {
-    // LL_PWR_REGU_LPMODES_LOW_POWER
     LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
     LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
+    LL_LPM_EnableDeepSleep();
+    __WFE();
 }

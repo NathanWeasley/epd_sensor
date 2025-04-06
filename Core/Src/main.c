@@ -94,7 +94,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ADC_Init();
+  //MX_ADC_Init();
   // MX_CRC_Init();
   // MX_LPTIM1_Init();
   MX_RTC_Init();
@@ -103,7 +103,7 @@ int main(void)
   Task_Init();
   // Task_UpdateMeasurement();
   /* USER CODE END 2 */
-  LL_mDelay(10000);
+  LL_mDelay(5000);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -455,7 +455,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
+  // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
   LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
   LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
 

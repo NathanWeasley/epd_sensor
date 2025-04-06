@@ -11,8 +11,6 @@ void EPD_TurnOnDisplay(void)
     EPD_SendData(0xF7);
     
     EPD_SendCommand(0x20); // Activate Display Update Sequence
-    
-    EPD_WaitForBusy();
 }
 
 uint8_t EPD_GetSwitch()
