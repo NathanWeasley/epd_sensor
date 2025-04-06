@@ -1,6 +1,6 @@
 #include "EPD/epd_driver.h"
 
-#define EPD_PWR_PIN     LL_GPIO_PIN_10
+#define EPD_PWR_PIN     LL_GPIO_PIN_1
 #define EPD_BUSY_PIN    LL_GPIO_PIN_0       ///< PORTB
 #define EPD_RST_PIN     LL_GPIO_PIN_3
 #define EPD_DC_PIN      LL_GPIO_PIN_6
@@ -25,11 +25,11 @@ void EPD_SetPower(uint8_t onoff)
     if (onoff)
     {
         /** Active low for PMOS */
-        GPIOA->BSRR = EPD_PWR_PIN;
+        GPIOB->BRR = EPD_PWR_PIN;
     }
     else
     {
-        GPIOA->BRR = EPD_PWR_PIN;
+        GPIOB->BSRR = EPD_PWR_PIN;
     }
 }
 

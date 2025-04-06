@@ -1,8 +1,8 @@
 #include "SHTC3_driver.h"
 #include "core_cm0plus.h"
 
-#define SHTC3_SCL_Pin LL_GPIO_PIN_6
-#define SHTC3_SDA_Pin LL_GPIO_PIN_7
+#define SHTC3_SCL_Pin LL_GPIO_PIN_11
+#define SHTC3_SDA_Pin LL_GPIO_PIN_10
 #define SHTC3_GPIO_Port GPIOB
 
 #define SDA_H       (SHTC3_GPIO_Port->BSRR = SHTC3_SDA_Pin)

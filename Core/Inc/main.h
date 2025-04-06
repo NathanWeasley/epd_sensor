@@ -75,10 +75,13 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BATT_IN_Pin LL_GPIO_PIN_2
-#define BATT_IN_GPIO_Port GPIOA
-#define EPD_PWR_Pin LL_GPIO_PIN_10
-#define EPD_PWR_GPIO_Port GPIOA
+#define VBAT_IN_Pin LL_GPIO_PIN_1
+#define VBAT_IN_GPIO_Port GPIOA
+#define VBUS_IN_Pin LL_GPIO_PIN_2
+#define VBUS_IN_GPIO_Port GPIOA
+
+#define EPD_PWR_Pin LL_GPIO_PIN_1
+#define EPD_PWR_GPIO_Port GPIOB
 #define EPD_RST_Pin LL_GPIO_PIN_3
 #define EPD_RST_GPIO_Port GPIOA
 #define EPD_CS_Pin LL_GPIO_PIN_4
@@ -91,12 +94,13 @@ void Error_Handler(void);
 #define EPD_DIN_GPIO_Port GPIOA
 #define EPD_BUSY_Pin LL_GPIO_PIN_0
 #define EPD_BUSY_GPIO_Port GPIOB
-#define KEY_B_Pin LL_GPIO_PIN_8
-#define KEY_B_GPIO_Port GPIOA
-#define KEY_A_Pin LL_GPIO_PIN_9
-#define KEY_A_GPIO_Port GPIOA
 
-#define EPD_DEBUG_Pin LL_GPIO_PIN_0
+#define VBAT_EN_Pin LL_GPIO_PIN_12
+#define VBAT_EN_GPIO_Port GPIOA
+#define VBUS_EN_Pin LL_GPIO_PIN_11
+#define VBUS_EN_GPIO_Port GPIOA
+
+#define EPD_DEBUG_Pin LL_GPIO_PIN_15
 #define EPD_DEBUG_GPIO_Port GPIOA
 
 #ifndef NVIC_PRIORITYGROUP_0

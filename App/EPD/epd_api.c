@@ -15,6 +15,12 @@ void EPD_TurnOnDisplay(void)
     EPD_WaitForBusy();
 }
 
+uint8_t EPD_GetSwitch()
+{
+    uint32_t idr = GPIOB->IDR;
+    return (idr & LL_GPIO_PIN_14) > 0;
+}
+
 void EPD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
 {
     EPD_SendCommand(0x44); // SET_RAM_X_ADDRESS_START_END_POSITION

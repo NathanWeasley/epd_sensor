@@ -3,6 +3,7 @@
 #include "stdint.h"
 
 void EPD_SetPower(uint8_t onoff);
+uint8_t EPD_GetSwitch();
 
 void EPD_TurnOnDisplay(void);
 

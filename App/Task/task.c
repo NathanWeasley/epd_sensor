@@ -60,27 +60,17 @@ void Task_Init()
     float temp, humi;
 
     /** Debugging */
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_2;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_14;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    GPIOB->BRR = LL_GPIO_PIN_2;
-
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    GPIOA->BSRR = LL_GPIO_PIN_1;
 
     /** SHTC3 init */
     SHTC3_Init();
 
     /** EPD init */
-    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    if (EPD_GetSwitch())
     {
         EPD_Init();
         // EPD_Clear();
@@ -225,7 +215,7 @@ void Task_Display()
             WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     }
 
-    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    if (EPD_GetSwitch())
     {
         EPD_UpdateBlack(img);
     }
@@ -278,7 +268,7 @@ void Task_Display()
             &(icon_table[ICON_NOBAT]), RED, WHITE);
     }
 
-    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    if (EPD_GetSwitch())
     {
         EPD_UpdateRed(img);
     }
@@ -286,7 +276,7 @@ void Task_Display()
     GPIOB->BRR = LL_GPIO_PIN_2;
 
     /** Update display */
-    if (GPIOA->IDR & LL_GPIO_PIN_0)
+    if (EPD_GetSwitch())
     {
         EPD_TurnOnDisplay();
     }

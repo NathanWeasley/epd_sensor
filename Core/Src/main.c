@@ -95,8 +95,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC_Init();
-  MX_CRC_Init();
-  MX_LPTIM1_Init();
+  // MX_CRC_Init();
+  // MX_LPTIM1_Init();
   MX_RTC_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
@@ -215,10 +215,10 @@ static void MX_ADC_Init(void)
   /**ADC GPIO Configuration
   PA0   ------> ADC_IN0
   */
-  GPIO_InitStruct.Pin = BATT_IN_Pin;
+  GPIO_InitStruct.Pin = VBAT_IN_Pin | VBUS_IN_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(BATT_IN_GPIO_Port, &GPIO_InitStruct);
+  LL_GPIO_Init(VBAT_IN_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN ADC_Init 1 */
 
@@ -226,7 +226,8 @@ static void MX_ADC_Init(void)
 
   /** Configure Regular Channel
   */
-  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_0);
+  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_1);
+  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_2);
 
   /** Common config
   */
@@ -465,6 +466,8 @@ static void MX_GPIO_Init(void)
   /* EPD DC# Pin */
   LL_GPIO_SetOutputPin(EPD_DC_GPIO_Port, EPD_DC_Pin);
 
+  LL_GPIO_SetOutputPin(EPD_PWR_GPIO_Port, EPD_PWR_Pin);
+
   /**/
   GPIO_InitStruct.Pin = EPD_PWR_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
@@ -505,41 +508,41 @@ static void MX_GPIO_Init(void)
 
   /** Init EPD enable debug pin */
   GPIO_InitStruct.Pin = EPD_DEBUG_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_OUTPUT_PUSHPULL;
   LL_GPIO_Init(EPD_DEBUG_GPIO_Port, &GPIO_InitStruct);
 
-  /**/
-  LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE8);
+  // /**/
+  // LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE8);
 
-  /**/
-  LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE9);
+  // /**/
+  // LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE9);
 
-  /**/
-  LL_GPIO_SetPinPull(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_PULL_NO);
+  // /**/
+  // LL_GPIO_SetPinPull(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_PULL_NO);
 
-  /**/
-  LL_GPIO_SetPinPull(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_PULL_NO);
+  // /**/
+  // LL_GPIO_SetPinPull(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_PULL_NO);
 
-  /**/
-  LL_GPIO_SetPinMode(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_MODE_INPUT);
+  // /**/
+  // LL_GPIO_SetPinMode(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_MODE_INPUT);
 
-  /**/
-  LL_GPIO_SetPinMode(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_MODE_INPUT);
+  // /**/
+  // LL_GPIO_SetPinMode(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_MODE_INPUT);
 
-  /**/
-  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_8;
-  EXTI_InitStruct.LineCommand = ENABLE;
-  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-  LL_EXTI_Init(&EXTI_InitStruct);
+  // /**/
+  // EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_8;
+  // EXTI_InitStruct.LineCommand = ENABLE;
+  // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+  // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
+  // LL_EXTI_Init(&EXTI_InitStruct);
 
-  /**/
-  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_9;
-  EXTI_InitStruct.LineCommand = ENABLE;
-  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-  LL_EXTI_Init(&EXTI_InitStruct);
+  // /**/
+  // EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_9;
+  // EXTI_InitStruct.LineCommand = ENABLE;
+  // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+  // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
+  // LL_EXTI_Init(&EXTI_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

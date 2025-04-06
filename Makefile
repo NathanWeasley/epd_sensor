@@ -67,7 +67,7 @@ App/Task/task.c
 
 # ASM sources
 ASM_SOURCES =  \
-Core/Startup/startup_stm32l051k8ux.s
+Core/Startup/startup_stm32l051xx.s
 
 # ASM sources
 ASMM_SOURCES = 
@@ -159,7 +159,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32L051K8UX_FLASH.ld
+LDSCRIPT = STM32L051C8Tx_FLASH.ld
 
 # libraries
 LIBS = -lc -lm -lnosys 
