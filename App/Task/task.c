@@ -65,17 +65,19 @@ void Task_Init()
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     /** Debugging */
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+
     GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_14;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /** EPD init */
-    if (EPD_GetSwitch())
-    {
-        EPD_Init();
-    }
+    // /** EPD init */
+    // if (EPD_GetSwitch())
+    // {
+    //     EPD_Init();
+    // }
 }
 
 void Task_UpdateMeasurement()

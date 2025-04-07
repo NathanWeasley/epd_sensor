@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "gui_paint.h": "c",
-        "core_cm0plus.h": "c"
+        "core_cm0plus.h": "c",
+        "epd_driver.h": "c"
     },
     "stm32-for-vscode.openOCDPath": false
 }

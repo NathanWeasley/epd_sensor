@@ -7,7 +7,6 @@ void EPD_SPI_Init()
 
     /* Peripheral clock enable */
     LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
-    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
 
     /** SPI AF pin config */
     GPIO_InitStruct.Pin = EPD_CLK_PIN | EPD_DIN_PIN;
@@ -32,6 +31,14 @@ void EPD_SPI_Init()
     LL_SPI_Init(SPI1, &SPI_InitStruct);
     LL_SPI_SetStandard(SPI1, LL_SPI_PROTOCOL_MOTOROLA);
     LL_SPI_Enable(SPI1);
+}
+
+void EPD_GPIO_Init()
+{
+    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
 
     /** Other pin config */
     EPD_RST_PORT->BSRR = EPD_RST_PIN;
@@ -59,11 +66,6 @@ void EPD_SPI_Init()
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     LL_GPIO_Init(EPD_BUSY_PORT, &GPIO_InitStruct);
-}
-
-void EPD_GPIO_Init()
-{
-    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
 }
 
 void EPD_Transmit(uint8_t byte)
