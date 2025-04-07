@@ -293,7 +293,7 @@ void Task_Display()
     /** Update display */
     if (EPD_GetSwitch())
     {
-        EPD_TurnOnDisplay();
+        EPD_Refresh();
         
         while (!(GPIOB->IDR & LL_GPIO_PIN_0));      ///< Wait for BUSY pin to set
 

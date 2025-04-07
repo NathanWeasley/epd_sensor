@@ -1,14 +1,48 @@
 #include "EPD/epd_driver.h"
 
-#define EPD_PWR_PIN     LL_GPIO_PIN_1
-#define EPD_BUSY_PIN    LL_GPIO_PIN_0       ///< PORTB
-#define EPD_RST_PIN     LL_GPIO_PIN_3
-#define EPD_DC_PIN      LL_GPIO_PIN_6
-#define EPD_CS_PIN      LL_GPIO_PIN_4
-#define EPD_CLK_PIN     LL_GPIO_PIN_5
-#define EPD_DIN_PIN     LL_GPIO_PIN_7
+void EPD_SPI_Init()
+{
+    LL_SPI_InitTypeDef SPI_InitStruct = {0};
+    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-void SPI_Transmit(uint8_t byte)
+    /* Peripheral clock enable */
+    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+
+    /** SPI AF pin config */
+    GPIO_InitStruct.Pin = EPD_CLK_PIN | EPD_DIN_PIN;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
+    LL_GPIO_Init(EPD_SPI_PORT, &GPIO_InitStruct);
+
+    /** SPI config */
+    SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
+    SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
+    SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
+    SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
+    SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
+    SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
+    SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2;
+    SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
+    SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
+    SPI_InitStruct.CRCPoly = 7;
+    LL_SPI_Init(SPI1, &SPI_InitStruct);
+    LL_SPI_SetStandard(SPI1, LL_SPI_PROTOCOL_MOTOROLA);
+    LL_SPI_Enable(SPI1);
+
+    /** Other pin config */
+
+}
+
+void EPD_GPIO_Init()
+{
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+}
+
+void EPD_Transmit(uint8_t byte)
 {
     while (!(SPI1->SR & SPI_SR_TXE));
     LL_SPI_TransmitData8(SPI1, byte);

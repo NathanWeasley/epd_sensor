@@ -1,16 +1,18 @@
 #pragma once
 
-#include "stdint.h"
+#include "EPD/epd_driver.h"
+#include <stdint.h>
 
 void EPD_SetPower(uint8_t onoff);
 uint8_t EPD_GetSwitch();
 
-void EPD_TurnOnDisplay(void);
+void EPD_Refresh(void);
 
 void EPD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend);
 void EPD_SetCursor(uint16_t Xstart, uint16_t Ystart);
 
 void EPD_Init(void);
+void EPD_DeInit(void);
 void EPD_Clear(void);
 void EPD_UpdateBlack(const uint8_t *blackImage);
 void EPD_UpdateRed(const uint8_t *redImage);

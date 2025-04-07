@@ -80,21 +80,6 @@ void Error_Handler(void);
 #define VBUS_IN_Pin LL_GPIO_PIN_2
 #define VBUS_IN_GPIO_Port GPIOA
 
-#define EPD_PWR_Pin LL_GPIO_PIN_1
-#define EPD_PWR_GPIO_Port GPIOB
-#define EPD_RST_Pin LL_GPIO_PIN_3
-#define EPD_RST_GPIO_Port GPIOA
-#define EPD_CS_Pin LL_GPIO_PIN_4
-#define EPD_CS_GPIO_Port GPIOA
-#define EPD_CLK_Pin LL_GPIO_PIN_5
-#define EPD_CLK_GPIO_Port GPIOA
-#define EPD_DC_Pin LL_GPIO_PIN_6
-#define EPD_DC_GPIO_Port GPIOA
-#define EPD_DIN_Pin LL_GPIO_PIN_7
-#define EPD_DIN_GPIO_Port GPIOA
-#define EPD_BUSY_Pin LL_GPIO_PIN_0
-#define EPD_BUSY_GPIO_Port GPIOB
-
 #define VBAT_EN_Pin LL_GPIO_PIN_12
 #define VBAT_EN_GPIO_Port GPIOA
 #define VBUS_EN_Pin LL_GPIO_PIN_11
