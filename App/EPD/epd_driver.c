@@ -34,7 +34,31 @@ void EPD_SPI_Init()
     LL_SPI_Enable(SPI1);
 
     /** Other pin config */
+    EPD_RST_PORT->BSRR = EPD_RST_PIN;
+    EPD_DC_PORT->BSRR = EPD_DC_PIN;
+    EPD_CS_PORT->BSRR = EPD_CS_PIN;
+    EPD_PWR_PORT->BSRR = EPD_PWR_PIN;
 
+    GPIO_InitStruct.Pin = EPD_RST_PIN;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(EPD_RST_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = EPD_CS_PIN;
+    LL_GPIO_Init(EPD_CS_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = EPD_DC_PIN;
+    LL_GPIO_Init(EPD_DC_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = EPD_PWR_PIN;
+    LL_GPIO_Init(EPD_PWR_PORT, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = EPD_BUSY_PIN;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(EPD_BUSY_PORT, &GPIO_InitStruct);
 }
 
 void EPD_GPIO_Init()
@@ -59,21 +83,21 @@ void EPD_SetPower(uint8_t onoff)
     if (onoff)
     {
         /** Active low for PMOS */
-        GPIOB->BRR = EPD_PWR_PIN;
+        EPD_PWR_PORT->BRR = EPD_PWR_PIN;
     }
     else
     {
-        GPIOB->BSRR = EPD_PWR_PIN;
+        EPD_PWR_PORT->BSRR = EPD_PWR_PIN;
     }
 }
 
 void EPD_Reset()
 {
-    GPIOA->BSRR = EPD_RST_PIN;
+    EPD_RST_PORT->BSRR = EPD_RST_PIN;
     EPD_Delay_ms(20);
-    GPIOA->BRR = EPD_RST_PIN;
+    EPD_RST_PORT->BRR = EPD_RST_PIN;
     EPD_Delay_ms(20);
-    GPIOA->BSRR = EPD_RST_PIN;
+    EPD_RST_PORT->BSRR = EPD_RST_PIN;
     EPD_Delay_ms(20);
 }
 
@@ -81,7 +105,7 @@ void EPD_WaitForBusy()
 {
 	while (1)
 	{	//=1 BUSY
-		if ((GPIOB->IDR & EPD_BUSY_PIN) == 0) 
+		if ((EPD_BUSY_PORT->IDR & EPD_BUSY_PIN) == 0) 
         {
 			break;
         }
@@ -92,16 +116,16 @@ void EPD_WaitForBusy()
 
 void EPD_SendData(uint8_t data)
 {
-    GPIOA->BSRR = EPD_DC_PIN;
-    GPIOA->BRR = EPD_CS_PIN;
-    SPI_Transmit(data);
-    GPIOA->BSRR = EPD_CS_PIN;
+    EPD_DC_PORT->BSRR = EPD_DC_PIN;
+    EPD_CS_PORT->BRR = EPD_CS_PIN;
+    EPD_Transmit(data);
+    EPD_CS_PORT->BSRR = EPD_CS_PIN;
 }
 
 void EPD_SendCommand(uint8_t cmd)
 {
-    GPIOA->BRR = EPD_DC_PIN;
-    GPIOA->BRR = EPD_CS_PIN;
-    SPI_Transmit(cmd);
-    GPIOA->BSRR = EPD_CS_PIN;
+    EPD_DC_PORT->BRR = EPD_DC_PIN;
+    EPD_CS_PORT->BRR = EPD_CS_PIN;
+    EPD_Transmit(cmd);
+    EPD_CS_PORT->BSRR = EPD_CS_PIN;
 }

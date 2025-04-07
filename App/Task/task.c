@@ -4,6 +4,7 @@
 #include "Graphics/GUI_Paint.h"
 #include "Graphics/icon.h"
 #include "SHTC3/SHTC3_api.h"
+#include "Battery/battery.h"
 #include "stm32l0xx_ll_utils.h"
 #include "stm32l0xx_ll_pwr.h"
 #include "stm32l0xx_ll_cortex.h"
@@ -57,12 +58,11 @@ typedef enum
     BATTERY_CHARGING = 2
 } battery_state_e;
 battery_state_e battery_flag = BATTERY_NORMAL;
+uint16_t vbat_val, vbus_val, vref_val;
 
 void Task_Init()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-    uint16_t shtc3_id = 0;
-    float temp, humi;
 
     /** Debugging */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_14;
@@ -71,24 +71,10 @@ void Task_Init()
     GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /** Voltage divider */
-    GPIOA->BRR = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
-    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /** SHTC3 init */
-    SHTC3_Init();
-
     /** EPD init */
     if (EPD_GetSwitch())
     {
         EPD_Init();
-        // EPD_Clear();
-
-        // LL_mDelay(500);
     }
 }
 
@@ -97,6 +83,9 @@ void Task_UpdateMeasurement()
     float temp, humi;
     int16_t temp_buf, T_delta;
     uint8_t humi_buf, H_delta;
+
+    /** SHTC3 init (only inits IIC emulation GPIO) */
+    SHTC3_Init();
 
     /** Wakep sensor and read */
     SHTC3_WakeUp();
@@ -142,9 +131,103 @@ void Task_UpdateMeasurement()
     humi_array[array_idx] = humi_buf;
     if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
         array_idx = 0;
+}
 
-    /** Battery */
-    // TODO
+void Task_UpdateBattery()
+{
+    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+    LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
+    LL_ADC_InitTypeDef ADC_InitStruct = {0};
+
+    /** Enable GPIO clock */
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+
+    /** Init MOSFET switch for voltage divider */
+    VIN_EN_PORT->BSRR = VBAT_EN_PIN | VBUS_EN_PIN;
+    GPIO_InitStruct.Pin = VBAT_EN_PIN | VBUS_EN_PIN;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    LL_GPIO_Init(VIN_EN_PORT, &GPIO_InitStruct);
+
+    /** ADC clock enable */
+    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ADC1);
+
+    /** ADC pin config */
+    GPIO_InitStruct.Pin = VBAT_AIN_PIN | VBUS_AIN_PIN;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(VIN_PORT, &GPIO_InitStruct);
+
+    /** ADC Regular Channel */
+    LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_1);
+    LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_2);
+    LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_17);    ///< VREF_INT
+
+    /** ADC Common config */
+    ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
+    ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_1RANK;
+    ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
+    ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
+    ADC_REG_InitStruct.Overrun = LL_ADC_REG_OVR_DATA_PRESERVED;
+    LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
+    LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
+    LL_ADC_SetOverSamplingScope(ADC1, LL_ADC_OVS_DISABLE);
+    LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_FORWARD);
+    LL_ADC_SetCommonFrequencyMode(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_CLOCK_FREQ_MODE_HIGH);
+    LL_ADC_DisableIT_EOC(ADC1);
+    LL_ADC_DisableIT_EOS(ADC1);
+    ADC_InitStruct.Clock = LL_ADC_CLOCK_SYNC_PCLK_DIV1;
+    ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
+    ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
+    ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
+    LL_ADC_Init(ADC1, &ADC_InitStruct);
+    LL_ADC_Enable(ADC1);
+
+    /** Enable ADC internal voltage regulator */
+    LL_ADC_EnableInternalRegulator(ADC1);
+    /* Compute number of CPU cycles to wait for, from delay in us. */
+    /* Note: Variable divided by 2 to compensate partially */
+    /* CPU processing cycles (depends on compilation optimization). */
+    /**
+     * Delay for ADC internal voltage regulator stabilization.
+     * Note: If system core clock frequency is below 200kHz, wait time
+     * is only a few CPU processing cycles.
+     */
+    uint32_t wait_loop_index;
+    wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
+    while (wait_loop_index != 0)
+    {
+      wait_loop_index--;
+    }
+
+    /** Enable voltage divider */
+    VIN_EN_PORT->BSRR = VBAT_EN_PIN | VBUS_EN_PIN;
+    LL_mDelay(1);       ///< Wait for capacitor to stablize
+
+    /** Start ADC conversion */
+    LL_ADC_REG_StartConversion(ADC1);
+    while (!LL_ADC_IsActiveFlag_EOC(ADC1));
+    vbat_val = LL_ADC_REG_ReadConversionData12(ADC1);
+    LL_ADC_REG_StartConversion(ADC1);
+    while (!LL_ADC_IsActiveFlag_EOC(ADC1));
+    vbus_val = LL_ADC_REG_ReadConversionData12(ADC1);
+    LL_ADC_REG_StartConversion(ADC1);
+    while (!LL_ADC_IsActiveFlag_EOC(ADC1));
+    vref_val = LL_ADC_REG_ReadConversionData12(ADC1);
+    LL_ADC_ClearFlag_EOS(ADC1);
+
+    /** Disable voltage divider */
+    VIN_EN_PORT->BRR = VBAT_EN_PIN | VBUS_EN_PIN;
+
+    /** Disable ADC */
+    LL_ADC_DeInit(ADC1);
+    LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_ADC1);
+
+    /** Process values */
+    ///< TODO
 }
 
 void Task_Display()
@@ -157,8 +240,6 @@ void Task_Display()
     uint8_t * img = NULL;
     uint8_t i, j;
     const icon_t * picon = NULL;
-
-    GPIOB->BSRR = LL_GPIO_PIN_2;
 
     /** Preprocess */
     img = EPD_GetVRAM();
@@ -232,6 +313,9 @@ void Task_Display()
 
     if (EPD_GetSwitch())
     {
+        /** Init EPD */
+        EPD_Init();
+
         EPD_UpdateBlack(img);
     }
 
@@ -288,14 +372,13 @@ void Task_Display()
         EPD_UpdateRed(img);
     }
 
-    GPIOB->BRR = LL_GPIO_PIN_2;
-
     /** Update display */
     if (EPD_GetSwitch())
     {
         EPD_Refresh();
-        
-        while (!(GPIOB->IDR & LL_GPIO_PIN_0));      ///< Wait for BUSY pin to set
+
+        /** Stop SPI */
+        EPD_DeInit();
 
         /** Set falling edge event on EPD_BUSY */
         LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE0);
@@ -308,10 +391,7 @@ void Task_Display()
         LL_EXTI_Init(&EXTI_InitStruct);
 
         /** Enter stop mode and wait for wakeup by BUSY pin falling */
-        LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
-        LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
-        LL_LPM_EnableDeepSleep();
-        __WFE();
+        LPM_StopUntilEvent();
 
         /** Recover MOSFET management pins to shutdown EPD */
         LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
@@ -362,12 +442,7 @@ void Task_PrepareForSleep()
     LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_SPI1);
 }
 
-void LPM_StopWhileEPDUpdate()
-{
-    ;
-}
-
-void LPM_StopUntilRTC()
+void LPM_StopUntilEvent()
 {
     LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
     LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);

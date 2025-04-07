@@ -11,7 +11,8 @@ void EPD_Refresh(void)
     
     EPD_SendCommand(0x20); // Activate Display Update Sequence
 
-    while (GPIOB->)
+    /** Wait until busy pin goes high */
+    while (!(EPD_BUSY_PORT->IDR & EPD_BUSY_PIN));
 }
 
 uint8_t EPD_GetSwitch()
@@ -50,7 +51,7 @@ void EPD_Init(void)
 
     /** Enable power delivered to EPD */
     EPD_SetPower(1);
-    EPD_Delay_ms(100);
+    EPD_Delay_ms(50);
 
     /** Hardware reset */
     EPD_Reset();

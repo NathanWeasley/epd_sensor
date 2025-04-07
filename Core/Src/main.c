@@ -2,12 +2,8 @@
 #include "app.h"
 
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_ADC_Init(void);
-static void MX_CRC_Init(void);
 static void MX_LPTIM1_Init(void);
 static void MX_RTC_Init(void);
-static void MX_SPI1_Init(void);
 
 /**
   * @brief  The application entry point.
@@ -22,12 +18,7 @@ int main(void)
 
   SystemClock_Config();
 
-  MX_GPIO_Init();
-  //MX_ADC_Init();
-  // MX_CRC_Init();
-  // MX_LPTIM1_Init();
   MX_RTC_Init();
-  MX_SPI1_Init();
 
   Task_Init();
 
@@ -35,11 +26,23 @@ int main(void)
 
   while (1)
   {
+    /** Prepare and measure temperature and humidity */
     Task_UpdateMeasurement();
+
+    /** Prepare and update VBUS and VBAT readings */
+    Task_UpdateBattery();
+
+    /** Prepare and update UI */
     Task_Display();
+
+    /** Shutdown all peripherals and prepare GPIO */
     Task_PrepareForSleep();
 
-    LPM_StopUntilRTC();
+    /** Prepare RTC and enter stop mode */
+    LPM_StopUntilEvent();
+
+    /** Recover 8MHz HSI clock */
+    // Task_RecoverClock();
   }
 
 }
@@ -119,97 +122,6 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief ADC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC_Init(void)
-{
-  LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
-  LL_ADC_InitTypeDef ADC_InitStruct = {0};
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /** Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ADC1);
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-
-  /** ADC pin config */
-  GPIO_InitStruct.Pin = VBAT_IN_Pin | VBUS_IN_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(VBAT_IN_GPIO_Port, &GPIO_InitStruct);
-
-  /** Configure Regular Channel */
-  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_1);
-  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_2);
-
-  /** Common config */
-  ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
-  ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
-  ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
-  ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
-  ADC_REG_InitStruct.Overrun = LL_ADC_REG_OVR_DATA_PRESERVED;
-  LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
-  LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
-  LL_ADC_SetOverSamplingScope(ADC1, LL_ADC_OVS_DISABLE);
-  LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_FORWARD);
-  LL_ADC_SetCommonFrequencyMode(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_CLOCK_FREQ_MODE_HIGH);
-  LL_ADC_DisableIT_EOC(ADC1);
-  LL_ADC_DisableIT_EOS(ADC1);
-  ADC_InitStruct.Clock = LL_ADC_CLOCK_SYNC_PCLK_DIV1;
-  ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
-  ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
-  ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
-  LL_ADC_Init(ADC1, &ADC_InitStruct);
-
-  /** Enable ADC internal voltage regulator */
-  LL_ADC_EnableInternalRegulator(ADC1);
-  /* Compute number of CPU cycles to wait for, from delay in us. */
-  /* Note: Variable divided by 2 to compensate partially */
-  /* CPU processing cycles (depends on compilation optimization). */
-  /**
-   * Delay for ADC internal voltage regulator stabilization.
-   * Note: If system core clock frequency is below 200kHz, wait time
-   * is only a few CPU processing cycles.
-   */
-  uint32_t wait_loop_index;
-  wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
-  while (wait_loop_index != 0)
-  {
-    wait_loop_index--;
-  }
-}
-
-/**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CRC_Init(void)
-{
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* Peripheral clock enable */
-  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_CRC);
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
-  LL_CRC_SetInputDataReverseMode(CRC, LL_CRC_INDATA_REVERSE_NONE);
-  LL_CRC_SetOutputDataReverseMode(CRC, LL_CRC_OUTDATA_REVERSE_NONE);
-  LL_CRC_SetPolynomialCoef(CRC, LL_CRC_DEFAULT_CRC32_POLY);
-  LL_CRC_SetPolynomialSize(CRC, LL_CRC_POLYLENGTH_32B);
-  LL_CRC_SetInitialData(CRC, LL_CRC_DEFAULT_CRC_INITVALUE);
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
-}
-
-/**
   * @brief LPTIM1 Initialization Function
   * @param None
   * @retval None
@@ -250,11 +162,6 @@ static void MX_LPTIM1_Init(void)
   */
 static void MX_RTC_Init(void)
 {
-
-  /* USER CODE BEGIN RTC_Init 0 */
-
-  /* USER CODE END RTC_Init 0 */
-
   LL_RTC_InitTypeDef RTC_InitStruct = {0};
 
   /* Peripheral clock enable */
@@ -263,10 +170,6 @@ static void MX_RTC_Init(void)
   /* RTC interrupt Init */
   NVIC_SetPriority(RTC_IRQn, 0);
   NVIC_EnableIRQ(RTC_IRQn);
-
-  /* USER CODE BEGIN RTC_Init 1 */
-
-  /* USER CODE END RTC_Init 1 */
 
   /** Initialize RTC and set the Time and Date
   */
@@ -281,77 +184,30 @@ static void MX_RTC_Init(void)
   /** Enable the WakeUp
   */
   LL_RTC_WAKEUP_SetClock(RTC, LL_RTC_WAKEUPCLOCK_CKSPRE);
-  /* USER CODE BEGIN RTC_Init 2 */
-
-  /* USER CODE END RTC_Init 2 */
-
 }
 
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
 
 
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
 
-  /* GPIO Ports Clock Enable */
-  // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
 
-  
 
-  // /**/
-  // LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE8);
 
-  // /**/
-  // LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE9);
 
-  // /**/
-  // LL_GPIO_SetPinPull(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_PULL_NO);
 
-  // /**/
-  // LL_GPIO_SetPinPull(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_PULL_NO);
 
-  // /**/
-  // LL_GPIO_SetPinMode(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_MODE_INPUT);
 
-  // /**/
-  // LL_GPIO_SetPinMode(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_MODE_INPUT);
 
-  // /**/
-  // EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_8;
-  // EXTI_InitStruct.LineCommand = ENABLE;
-  // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-  // LL_EXTI_Init(&EXTI_InitStruct);
 
-  // /**/
-  // EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_9;
-  // EXTI_InitStruct.LineCommand = ENABLE;
-  // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-  // LL_EXTI_Init(&EXTI_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
-}
 
-/* USER CODE BEGIN 4 */
 
-/* USER CODE END 4 */
+
+
+
+
+
+
+
 
 /**
   * @brief  This function is executed in case of error occurrence.
