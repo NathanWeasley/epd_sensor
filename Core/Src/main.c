@@ -49,8 +49,6 @@
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC_Init(void);
-static void MX_CRC_Init(void);
-static void MX_LPTIM1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
@@ -68,55 +66,38 @@ static void MX_SPI1_Init(void);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 
-  /* SysTick_IRQn interrupt configuration */
   NVIC_SetPriority(SysTick_IRQn, 3);
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  //MX_ADC_Init();
-  // MX_CRC_Init();
-  // MX_LPTIM1_Init();
   MX_RTC_Init();
-  MX_SPI1_Init();
-  /* USER CODE BEGIN 2 */
-  Task_Init();
-  // Task_UpdateMeasurement();
-  /* USER CODE END 2 */
-  LL_mDelay(5000);
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+
   while (1)
   {
-    /* USER CODE END WHILE */
+    MX_GPIO_Init();
+    //MX_ADC_Init();
+    MX_SPI1_Init();
+
+    Task_Init();
+
+    GPIOA->BSRR = LL_GPIO_PIN_15;
+    LL_mDelay(1000);
+    GPIOA->BRR = LL_GPIO_PIN_15;
+
     Task_UpdateMeasurement();
     Task_Display();
     Task_PrepareForSleep();
 
     LPM_StopUntilRTC();
-    /* USER CODE BEGIN 3 */
+
+    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+    LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
+    NVIC_SetPriority(SysTick_IRQn, 3);
+    SystemClock_Config();
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -133,7 +114,7 @@ void SystemClock_Config(void)
   while (LL_PWR_IsActiveFlag_VOS() != 0)
   {
   }
-  LL_RCC_HSI_EnableDivider();
+  // LL_RCC_HSI_EnableDivider();
   LL_RCC_HSI_Enable();
 
    /* Wait till HSI is ready */
@@ -142,13 +123,6 @@ void SystemClock_Config(void)
 
   }
   LL_RCC_HSI_SetCalibTrimming(16);
-  LL_RCC_LSI_Enable();
-
-   /* Wait till LSI is ready */
-  while(LL_RCC_LSI_IsReady() != 1)
-  {
-
-  }
   LL_PWR_EnableBkUpAccess();
   if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
   {
@@ -168,21 +142,13 @@ void SystemClock_Config(void)
     LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
   }
   LL_RCC_EnableRTC();
-  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLL_MUL_4, LL_RCC_PLL_DIV_2);
-  LL_RCC_PLL_Enable();
-
-   /* Wait till PLL is ready */
-  while(LL_RCC_PLL_IsReady() != 1)
-  {
-
-  }
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_2);
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSI);
 
    /* Wait till System clock is ready */
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI)
   {
 
   }
@@ -190,7 +156,6 @@ void SystemClock_Config(void)
   LL_Init1msTick(8000000);
 
   LL_SetSystemCoreClock(8000000);
-  LL_RCC_SetLPTIMClockSource(LL_RCC_LPTIM1_CLKSOURCE_LSI);
 }
 
 /**
@@ -200,39 +165,22 @@ void SystemClock_Config(void)
   */
 static void MX_ADC_Init(void)
 {
-
-  /* USER CODE BEGIN ADC_Init 0 */
-
-  /* USER CODE END ADC_Init 0 */
-
   LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
   LL_ADC_InitTypeDef ADC_InitStruct = {0};
-
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* Peripheral clock enable */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ADC1);
-
   LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-  /**ADC GPIO Configuration
-  PA0   ------> ADC_IN0
-  */
+
   GPIO_InitStruct.Pin = VBAT_IN_Pin | VBUS_IN_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(VBAT_IN_GPIO_Port, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN ADC_Init 1 */
-
-  /* USER CODE END ADC_Init 1 */
-
-  /** Configure Regular Channel
-  */
   LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_1);
   LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_2);
+  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_17);
 
-  /** Common config
-  */
   ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
   ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
   ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
@@ -261,77 +209,10 @@ static void MX_ADC_Init(void)
   /* is only a few CPU processing cycles. */
   uint32_t wait_loop_index;
   wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
-  while(wait_loop_index != 0)
+  while (wait_loop_index != 0)
   {
     wait_loop_index--;
   }
-  /* USER CODE BEGIN ADC_Init 2 */
-
-  /* USER CODE END ADC_Init 2 */
-
-}
-
-/**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CRC_Init(void)
-{
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* Peripheral clock enable */
-  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_CRC);
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
-  LL_CRC_SetInputDataReverseMode(CRC, LL_CRC_INDATA_REVERSE_NONE);
-  LL_CRC_SetOutputDataReverseMode(CRC, LL_CRC_OUTDATA_REVERSE_NONE);
-  LL_CRC_SetPolynomialCoef(CRC, LL_CRC_DEFAULT_CRC32_POLY);
-  LL_CRC_SetPolynomialSize(CRC, LL_CRC_POLYLENGTH_32B);
-  LL_CRC_SetInitialData(CRC, LL_CRC_DEFAULT_CRC_INITVALUE);
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
-}
-
-/**
-  * @brief LPTIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPTIM1_Init(void)
-{
-
-  /* USER CODE BEGIN LPTIM1_Init 0 */
-
-  /* USER CODE END LPTIM1_Init 0 */
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_LPTIM1);
-
-  /* LPTIM1 interrupt Init */
-  NVIC_SetPriority(LPTIM1_IRQn, 0);
-  NVIC_EnableIRQ(LPTIM1_IRQn);
-
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
-  LL_LPTIM_SetClockSource(LPTIM1, LL_LPTIM_CLK_SOURCE_INTERNAL);
-  LL_LPTIM_SetPrescaler(LPTIM1, LL_LPTIM_PRESCALER_DIV1);
-  LL_LPTIM_SetPolarity(LPTIM1, LL_LPTIM_OUTPUT_POLARITY_REGULAR);
-  LL_LPTIM_SetUpdateMode(LPTIM1, LL_LPTIM_UPDATE_MODE_IMMEDIATE);
-  LL_LPTIM_SetCounterMode(LPTIM1, LL_LPTIM_COUNTER_MODE_INTERNAL);
-  LL_LPTIM_TrigSw(LPTIM1);
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
-
 }
 
 /**
@@ -341,23 +222,15 @@ static void MX_LPTIM1_Init(void)
   */
 static void MX_RTC_Init(void)
 {
-
-  /* USER CODE BEGIN RTC_Init 0 */
-
-  /* USER CODE END RTC_Init 0 */
-
   LL_RTC_InitTypeDef RTC_InitStruct = {0};
 
   /* Peripheral clock enable */
-  LL_RCC_EnableRTC();
+  // LL_RCC_EnableRTC();
+  // LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
 
   /* RTC interrupt Init */
   NVIC_SetPriority(RTC_IRQn, 0);
   NVIC_EnableIRQ(RTC_IRQn);
-
-  /* USER CODE BEGIN RTC_Init 1 */
-
-  /* USER CODE END RTC_Init 1 */
 
   /** Initialize RTC and set the Time and Date
   */
@@ -366,16 +239,33 @@ static void MX_RTC_Init(void)
   RTC_InitStruct.SynchPrescaler = 255;
   LL_RTC_Init(RTC, &RTC_InitStruct);
 
-  /** Initialize RTC and set the Time and Date
-  */
+  /** Disable WP */
+  RTC->WPR = 0xCA;
+  RTC->WPR = 0x53;
 
-  /** Enable the WakeUp
-  */
+  /** Disable Wakeup timer and wait for clock sync */
+  RTC->CR &=~ RTC_CR_WUTE;
+  while ((RTC->ISR & RTC_ISR_WUTWF) != RTC_ISR_WUTWF);
+
+  /** Clear WUTF flag */
+  LL_RTC_ClearFlag_WUT(RTC);
+
+  /** Select wakeup clock source */
   LL_RTC_WAKEUP_SetClock(RTC, LL_RTC_WAKEUPCLOCK_CKSPRE);
-  /* USER CODE BEGIN RTC_Init 2 */
 
-  /* USER CODE END RTC_Init 2 */
+  /** Set auto reload value */
+  LL_RTC_WAKEUP_SetAutoReload(RTC, 120 - 1);
 
+  /** Re-enable Wakeup timer and enable interrupt */
+  RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
+
+  /** Enable WP */
+  RTC->WPR = 0xFE;
+  RTC->WPR = 0x64;
+
+  /** Enable RTC wakeup interrupt through EXTI */
+  EXTI->IMR |= EXTI_IMR_IM20;
+  EXTI->RTSR |= EXTI_RTSR_RT20;
 }
 
 /**
@@ -385,11 +275,6 @@ static void MX_RTC_Init(void)
   */
 static void MX_SPI1_Init(void)
 {
-
-  /* USER CODE BEGIN SPI1_Init 0 */
-
-  /* USER CODE END SPI1_Init 0 */
-
   LL_SPI_InitTypeDef SPI_InitStruct = {0};
 
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -418,10 +303,6 @@ static void MX_SPI1_Init(void)
   GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
   LL_GPIO_Init(EPD_DIN_GPIO_Port, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN SPI1_Init 1 */
-
-  /* USER CODE END SPI1_Init 1 */
-  /* SPI1 parameter configuration*/
   SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
   SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
   SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
@@ -434,12 +315,7 @@ static void MX_SPI1_Init(void)
   SPI_InitStruct.CRCPoly = 7;
   LL_SPI_Init(SPI1, &SPI_InitStruct);
   LL_SPI_SetStandard(SPI1, LL_SPI_PROTOCOL_MOTOROLA);
-  /* USER CODE BEGIN SPI1_Init 2 */
-
   LL_SPI_Enable(SPI1);
-
-  /* USER CODE END SPI1_Init 2 */
-
 }
 
 /**
@@ -449,10 +325,8 @@ static void MX_SPI1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
-  LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
+  // LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
@@ -546,14 +420,7 @@ static void MX_GPIO_Init(void)
   // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
   // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
   // LL_EXTI_Init(&EXTI_InitStruct);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.

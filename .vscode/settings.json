@@ -3,5 +3,6 @@
         "gui_paint.h": "c",
         "core_cm0plus.h": "c"
     },
-    "stm32-for-vscode.openOCDPath": false
+    "stm32-for-vscode.openOCDPath": false,
+    "cortex-debug.variableUseNaturalFormat": false
 }

@@ -10,6 +10,7 @@
 #include "stm32l0xx_ll_system.h"
 #include "stm32l0xx_ll_exti.h"
 #include "stm32l0xx_ll_gpio.h"
+#include "stm32l0xx_ll_rtc.h"
 
 #include <stdio.h>
 
@@ -61,15 +62,22 @@ battery_state_e battery_flag = BATTERY_NORMAL;
 void Task_Init()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-    uint16_t shtc3_id = 0;
-    float temp, humi;
 
-    /** Debugging */
+    /** Debug SW */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_14;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /** LED */
+    GPIOA->BRR = LL_GPIO_PIN_15;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /** Voltage divider */
     GPIOA->BRR = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
@@ -79,16 +87,10 @@ void Task_Init()
     GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
     LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /** SHTC3 init */
-    SHTC3_Init();
-
     /** EPD init */
     if (EPD_GetSwitch())
     {
         EPD_Init();
-        // EPD_Clear();
-
-        // LL_mDelay(500);
     }
 }
 
@@ -97,6 +99,9 @@ void Task_UpdateMeasurement()
     float temp, humi;
     int16_t temp_buf, T_delta;
     uint8_t humi_buf, H_delta;
+
+    /** SHTC3 init */
+    SHTC3_Init();
 
     /** Wakep sensor and read */
     SHTC3_WakeUp();
@@ -142,9 +147,6 @@ void Task_UpdateMeasurement()
     humi_array[array_idx] = humi_buf;
     if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
         array_idx = 0;
-
-    /** Battery */
-    // TODO
 }
 
 void Task_Display()
@@ -232,6 +234,7 @@ void Task_Display()
 
     if (EPD_GetSwitch())
     {
+        // EPD_Init();
         EPD_UpdateBlack(img);
     }
 
@@ -362,15 +365,13 @@ void Task_PrepareForSleep()
     LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_SPI1);
 }
 
-void LPM_StopWhileEPDUpdate()
-{
-    ;
-}
-
 void LPM_StopUntilRTC()
 {
     LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
     LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
     LL_LPM_EnableDeepSleep();
-    __WFE();
+    __WFI();
+
+    /** Clear RTC ISR */
+    LL_RTC_ClearFlag_WUT(RTC);
 }
