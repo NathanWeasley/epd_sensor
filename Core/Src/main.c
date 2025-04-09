@@ -1,71 +1,10 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include "app.h"
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
 static void MX_ADC_Init(void);
 static void MX_RTC_Init(void);
-static void MX_SPI1_Init(void);
-/* USER CODE BEGIN PFP */
 
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-// static uint8_t count = 0;
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
   LL_GPIO_InitTypeDef GPIO_InitStruct;
@@ -78,17 +17,21 @@ int main(void)
 
   MX_RTC_Init();
 
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIOA->BSRR = LL_GPIO_PIN_15;
+  LL_mDelay(2000);
+  GPIOA->BRR = LL_GPIO_PIN_15;
+
   while (1)
   {
-    MX_GPIO_Init();
     //MX_ADC_Init();
-    MX_SPI1_Init();
 
     Task_Init();
-
-    GPIOA->BSRR = LL_GPIO_PIN_15;
-    LL_mDelay(1000);
-    GPIOA->BRR = LL_GPIO_PIN_15;
 
     Task_UpdateMeasurement();
     Task_Display();
@@ -103,43 +46,14 @@ int main(void)
 
     // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
     // GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
-    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    // GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    // GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     // GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    // GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     // LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // if (count == 0)
-    // {
-    //   GPIOA->BSRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BSRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BRR = LL_GPIO_PIN_15;
-
-    //   count++;
-    // }
-    // else
-    // {
-    //   GPIOA->BSRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BSRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BSRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BSRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    //   GPIOA->BRR = LL_GPIO_PIN_15;
-    //   LL_mDelay(100);
-    // }
+    // GPIOA->BSRR = LL_GPIO_PIN_15;
+    // LL_mDelay(200);
+    // GPIOA->BRR = LL_GPIO_PIN_15;
   }
 }
 
@@ -150,54 +64,42 @@ int main(void)
 void SystemClock_Config(void)
 {
   LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-  while(LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0)
-  {
-  }
+  while (LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0);
+
   LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
-  while (LL_PWR_IsActiveFlag_VOS() != 0)
-  {
-  }
-  // LL_RCC_HSI_EnableDivider();
+  while (LL_PWR_IsActiveFlag_VOS() != 0);
+
   LL_RCC_HSI_Enable();
-
-   /* Wait till HSI is ready */
-  while(LL_RCC_HSI_IsReady() != 1)
-  {
-
-  }
+  while (LL_RCC_HSI_IsReady() != 1); /* Wait till HSI is ready */
   LL_RCC_HSI_SetCalibTrimming(16);
+
   LL_PWR_EnableBkUpAccess();
-  if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
+  if (LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
   {
     LL_RCC_ForceBackupDomainReset();
     LL_RCC_ReleaseBackupDomainReset();
   }
+
   LL_RCC_LSE_SetDriveCapability(LL_RCC_LSEDRIVE_LOW);
   LL_RCC_LSE_Enable();
-
    /* Wait till LSE is ready */
-  while(LL_RCC_LSE_IsReady() != 1)
-  {
+  while (LL_RCC_LSE_IsReady() != 1);
 
-  }
-  if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
+  if (LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
   {
     LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
   }
   LL_RCC_EnableRTC();
+
   LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_2);
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
   LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSI);
 
    /* Wait till System clock is ready */
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI)
-  {
-
-  }
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI);
 
   LL_Init1msTick(8000000);
-
   LL_SetSystemCoreClock(8000000);
 }
 
@@ -268,15 +170,12 @@ static void MX_RTC_Init(void)
   LL_RTC_InitTypeDef RTC_InitStruct = {0};
 
   /* Peripheral clock enable */
-  // LL_RCC_EnableRTC();
-  // LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
+  // clock already enabled in systemclock_init()
 
   /* RTC interrupt Init */
   NVIC_SetPriority(RTC_IRQn, 0);
   NVIC_EnableIRQ(RTC_IRQn);
 
-  /** Initialize RTC and set the Time and Date
-  */
   RTC_InitStruct.HourFormat = LL_RTC_HOURFORMAT_24HOUR;
   RTC_InitStruct.AsynchPrescaler = 127;
   RTC_InitStruct.SynchPrescaler = 255;
@@ -297,7 +196,7 @@ static void MX_RTC_Init(void)
   LL_RTC_WAKEUP_SetClock(RTC, LL_RTC_WAKEUPCLOCK_CKSPRE);
 
   /** Set auto reload value */
-  LL_RTC_WAKEUP_SetAutoReload(RTC, 60 - 1);
+  LL_RTC_WAKEUP_SetAutoReload(RTC, 1800 - 1);
 
   /** Re-enable Wakeup timer and enable interrupt */
   RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
@@ -309,160 +208,6 @@ static void MX_RTC_Init(void)
   /** Enable RTC wakeup interrupt through EXTI */
   EXTI->IMR |= EXTI_IMR_IM20;
   EXTI->RTSR |= EXTI_RTSR_RT20;
-}
-
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI1_Init(void)
-{
-  LL_SPI_InitTypeDef SPI_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
-
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-  /**SPI1 GPIO Configuration
-  PA5   ------> SPI1_SCK
-  PA7   ------> SPI1_MOSI
-  */
-  GPIO_InitStruct.Pin = EPD_CLK_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
-  LL_GPIO_Init(EPD_CLK_GPIO_Port, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = EPD_DIN_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
-  LL_GPIO_Init(EPD_DIN_GPIO_Port, &GPIO_InitStruct);
-
-  SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
-  SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
-  SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
-  SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
-  SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
-  SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
-  SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2;
-  SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
-  SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
-  SPI_InitStruct.CRCPoly = 7;
-  LL_SPI_Init(SPI1, &SPI_InitStruct);
-  LL_SPI_SetStandard(SPI1, LL_SPI_PROTOCOL_MOTOROLA);
-  LL_SPI_Enable(SPI1);
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  // LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* GPIO Ports Clock Enable */
-  // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
-
-  /* EPD nRST */
-  LL_GPIO_SetOutputPin(EPD_RST_GPIO_Port, EPD_RST_Pin);
-
-  /* EPD nCS Pin */
-  LL_GPIO_SetOutputPin(EPD_CS_GPIO_Port, EPD_CS_Pin);
-
-  /* EPD DC# Pin */
-  LL_GPIO_SetOutputPin(EPD_DC_GPIO_Port, EPD_DC_Pin);
-
-  LL_GPIO_SetOutputPin(EPD_PWR_GPIO_Port, EPD_PWR_Pin);
-  LL_GPIO_ResetOutputPin(EPD_DEBUG_GPIO_Port, EPD_DEBUG_Pin);
-
-  /**/
-  GPIO_InitStruct.Pin = EPD_PWR_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(EPD_PWR_GPIO_Port, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = EPD_RST_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(EPD_RST_GPIO_Port, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = EPD_CS_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(EPD_CS_GPIO_Port, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = EPD_DC_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(EPD_DC_GPIO_Port, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = EPD_BUSY_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(EPD_BUSY_GPIO_Port, &GPIO_InitStruct);
-
-  /** Init EPD enable debug pin */
-  GPIO_InitStruct.Pin = EPD_DEBUG_Pin;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Pull = LL_GPIO_OUTPUT_PUSHPULL;
-  LL_GPIO_Init(EPD_DEBUG_GPIO_Port, &GPIO_InitStruct);
-
-  // /**/
-  // LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE8);
-
-  // /**/
-  // LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE9);
-
-  // /**/
-  // LL_GPIO_SetPinPull(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_PULL_NO);
-
-  // /**/
-  // LL_GPIO_SetPinPull(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_PULL_NO);
-
-  // /**/
-  // LL_GPIO_SetPinMode(KEY_B_GPIO_Port, KEY_B_Pin, LL_GPIO_MODE_INPUT);
-
-  // /**/
-  // LL_GPIO_SetPinMode(KEY_A_GPIO_Port, KEY_A_Pin, LL_GPIO_MODE_INPUT);
-
-  // /**/
-  // EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_8;
-  // EXTI_InitStruct.LineCommand = ENABLE;
-  // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-  // LL_EXTI_Init(&EXTI_InitStruct);
-
-  // /**/
-  // EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_9;
-  // EXTI_InitStruct.LineCommand = ENABLE;
-  // EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
-  // EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-  // LL_EXTI_Init(&EXTI_InitStruct);
 }
 
 /**

@@ -5,7 +5,7 @@
 
 static uint8_t ImageBuf[IMG_SIZE];
 
-void EPD_TurnOnDisplay(void)
+void EPD_RefreshScreen(void)
 {
     EPD_SendCommand(0x22);
     EPD_SendData(0xF7);
@@ -66,25 +66,12 @@ void EPD_Init(void)
     EPD_SendCommand(0x11);
     EPD_SendData(0x03);
 
-//    EPD_SendCommand(0x44); //set Ram-X address start/end position
-//    EPD_SendData(0x00);
-//    EPD_SendData(0x0F);    //0x0F-->(15+1)*8=128
-
-//    EPD_SendCommand(0x45); //set Ram-Y address start/end position
-//    EPD_SendData(0x00);   //0xF9-->(249+1)=250
-//    EPD_SendData(0x00);
-//    EPD_SendData(0xF9);
-//    EPD_SendData(0x00);
-
     EPD_SetWindow(0, 0, EPD_WIDTH-1, EPD_HEIGHT-1);
     EPD_SetCursor(0, 0);
 
     /** Border waveform */
     EPD_SendCommand(0x3C);
     EPD_SendData(0x05);
-
-//    EPD_SendCommand(0x18); //Read built-in temperature sensor
-//    EPD_SendData(0x80);
     
     /** Temperature sensor */
     EPD_SendCommand(0x1A);
@@ -93,14 +80,8 @@ void EPD_Init(void)
 
     /** Display update control */
     EPD_SendCommand(0x21);
-    EPD_SendData(0x80);            ///< Formerly 0x80
     EPD_SendData(0x80);
-
-//    EPD_SendCommand(0x4E);   // set RAM x address count to 0;
-//    EPD_SendData(0x00);
-//    EPD_SendCommand(0x4F);   // set RAM y address count to 0X199;    
-//    EPD_SendData(0x00);
-//    EPD_SendData(0x00);
+    EPD_SendData(0x80);
 
     EPD_WaitForBusy();
 }
@@ -128,7 +109,7 @@ void EPD_Clear(void)
         }
     }
 
-    EPD_TurnOnDisplay();
+    EPD_RefreshScreen();
 }
 
 void EPD_UpdateBlack(const uint8_t *blackImage)
@@ -186,7 +167,7 @@ void EPD_UpdateAll(const uint8_t *blackImage, const uint8_t *redImage)
         }
     }
 
-    EPD_TurnOnDisplay();
+    EPD_RefreshScreen();
 }
 
 void EPD_Sleep(void)
