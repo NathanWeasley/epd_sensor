@@ -151,6 +151,7 @@ void Task_UpdateMeasurement()
 
 void Task_Display()
 {
+    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
     LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
 
     uint16_t width, height, width_prev, height_prev, delta;
@@ -310,19 +311,39 @@ void Task_Display()
         EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
         LL_EXTI_Init(&EXTI_InitStruct);
 
+        GPIOA->BSRR = LL_GPIO_PIN_15;
+
         /** Enter stop mode and wait for wakeup by BUSY pin falling */
         LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
         LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
         LL_LPM_EnableDeepSleep();
+        __SEV();
+        __WFE();
         __WFE();
 
         /** Recover MOSFET management pins to shutdown EPD */
+
+        // LL_EXTI_DisableEvent_0_31(LL_EXTI_LINE_0);
+        // LL_EXTI_DeInit();
+        // EXTI->IMR |= EXTI_IMR_IM20;
+        // EXTI->RTSR |= EXTI_RTSR_RT20;
+
         LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
         LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_1);
         LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_1, LL_GPIO_MODE_OUTPUT);
         LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_1, LL_GPIO_SPEED_FREQ_LOW);
         LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_1, LL_GPIO_PULL_NO);
         LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_1, LL_GPIO_OUTPUT_PUSHPULL);
+
+        LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        GPIOA->BRR = LL_GPIO_PIN_15;
     }
 }
 
@@ -367,6 +388,7 @@ void Task_PrepareForSleep()
 
 void LPM_StopUntilRTC()
 {
+    LL_SYSTICK_DisableIT();
     LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
     LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
     LL_LPM_EnableDeepSleep();
@@ -374,4 +396,5 @@ void LPM_StopUntilRTC()
 
     /** Clear RTC ISR */
     LL_RTC_ClearFlag_WUT(RTC);
+    // LL_SYSTICK_EnableIT();
 }

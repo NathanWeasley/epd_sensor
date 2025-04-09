@@ -58,6 +58,8 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// static uint8_t count = 0;
+
 /* USER CODE END 0 */
 
 /**
@@ -66,6 +68,7 @@ static void MX_SPI1_Init(void);
   */
 int main(void)
 {
+  LL_GPIO_InitTypeDef GPIO_InitStruct;
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 
@@ -97,6 +100,46 @@ int main(void)
     LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
     NVIC_SetPriority(SysTick_IRQn, 3);
     SystemClock_Config();
+
+    // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+    // GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    // GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    // GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    // GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    // LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    // if (count == 0)
+    // {
+    //   GPIOA->BSRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BSRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BRR = LL_GPIO_PIN_15;
+
+    //   count++;
+    // }
+    // else
+    // {
+    //   GPIOA->BSRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BSRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BSRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BSRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    //   GPIOA->BRR = LL_GPIO_PIN_15;
+    //   LL_mDelay(100);
+    // }
   }
 }
 
@@ -254,7 +297,7 @@ static void MX_RTC_Init(void)
   LL_RTC_WAKEUP_SetClock(RTC, LL_RTC_WAKEUPCLOCK_CKSPRE);
 
   /** Set auto reload value */
-  LL_RTC_WAKEUP_SetAutoReload(RTC, 120 - 1);
+  LL_RTC_WAKEUP_SetAutoReload(RTC, 60 - 1);
 
   /** Re-enable Wakeup timer and enable interrupt */
   RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
