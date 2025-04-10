@@ -27,6 +27,8 @@ int main(void)
   LL_mDelay(2000);
   GPIOA->BRR = LL_GPIO_PIN_15;
 
+  LL_DBGMCU_EnableDBGStopMode();
+
   while (1)
   {
     //MX_ADC_Init();
