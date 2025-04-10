@@ -27,7 +27,7 @@ int main(void)
   LL_mDelay(2000);
   GPIOA->BRR = LL_GPIO_PIN_15;
 
-  LL_DBGMCU_EnableDBGStopMode();
+  // LL_DBGMCU_EnableDBGStopMode();
 
   while (1)
   {
@@ -46,16 +46,16 @@ int main(void)
     NVIC_SetPriority(SysTick_IRQn, 3);
     SystemClock_Config();
 
-    // LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-    // GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
-    // GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    // GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    // GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    // LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    // GPIOA->BSRR = LL_GPIO_PIN_15;
-    // LL_mDelay(200);
-    // GPIOA->BRR = LL_GPIO_PIN_15;
+    GPIOA->BSRR = LL_GPIO_PIN_15;
+    LL_mDelay(100);
+    GPIOA->BRR = LL_GPIO_PIN_15;
   }
 }
 
