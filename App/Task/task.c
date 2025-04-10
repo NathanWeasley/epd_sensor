@@ -4,6 +4,9 @@
 #include "Graphics/GUI_Paint.h"
 #include "Graphics/icon.h"
 #include "SHTC3/SHTC3_api.h"
+
+#include "core_cm0plus.h"
+#include "stm32l051xx.h"
 #include "stm32l0xx_ll_utils.h"
 #include "stm32l0xx_ll_pwr.h"
 #include "stm32l0xx_ll_cortex.h"
@@ -371,13 +374,58 @@ void Task_PrepareForSleep()
 
 void LPM_StopUntilRTC()
 {
-    LL_SYSTICK_DisableIT();
-    LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
-    LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
-    LL_LPM_EnableDeepSleep();
-    __WFI();
+    LPM_StopAndWFI();
 
     /** Clear RTC ISR */
     LL_RTC_ClearFlag_WUT(RTC);
     // LL_SYSTICK_EnableIT();
+}
+
+void LPM_StopAndWFI()
+{
+    uint32_t ulpbit, vrefinbit, tmpreg;
+
+    ulpbit = READ_BIT(PWR->CR, PWR_CR_ULP);
+    vrefinbit = READ_BIT(SYSCFG->CFGR3, SYSCFG_CFGR3_EN_VREFINT);
+    if ((ulpbit != 0) && (vrefinbit != 0))
+    {
+        CLEAR_BIT(PWR->CR, PWR_CR_ULP);
+    }
+
+    tmpreg = PWR->CR;
+    CLEAR_BIT(tmpreg, (PWR_CR_PDDS | PWR_CR_LPSDSR));
+    SET_BIT(tmpreg, PWR_CR_LPSDSR);
+    PWR->CR = tmpreg;
+
+    SET_BIT(SCB->SCR, SCB_SCR_SLEEPDEEP_Msk);
+
+    __WFI();
+}
+
+void LPM_StopAndWFE()
+{
+    uint32_t ulpbit, vrefinbit, tmpreg;
+
+    ulpbit = READ_BIT(PWR->CR, PWR_CR_ULP);
+    vrefinbit = READ_BIT(SYSCFG->CFGR3, SYSCFG_CFGR3_EN_VREFINT);
+    if ((ulpbit != 0) && (vrefinbit != 0))
+    {
+        CLEAR_BIT(PWR->CR, PWR_CR_ULP);
+    }
+
+    tmpreg = PWR->CR;
+    CLEAR_BIT(tmpreg, (PWR_CR_PDDS | PWR_CR_LPSDSR));
+    SET_BIT(tmpreg, PWR_CR_LPSDSR);
+    PWR->CR = tmpreg;
+
+    SET_BIT(SCB->SCR, SCB_SCR_SLEEPDEEP_Msk);
+
+    __SEV();
+    __WFE();
+    __WFE();
+}
+
+void LPN_RecoverFromStop()
+{
+    
 }
