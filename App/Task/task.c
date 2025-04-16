@@ -46,10 +46,10 @@
 #define SHTC3_TEMP_MIN_GAP      (50)
 #define SHTC3_HUMI_MIN_GAP      (10)
 #define SHTC3_MAX_DATA_RECORD_LEN   (100)
-static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN] = {0};
+static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN] = {290};
 static int16_t T_max = INT16_MIN, T_min = INT16_MAX;
 static int32_t T_numerator;
-static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN] = {0};
+static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN] = {37};
 static uint8_t H_max = 0, H_min = UINT8_MAX;
 static int32_t H_numerator;
 uint8_t array_idx = 0;
@@ -106,8 +106,8 @@ void Task_Init()
 void Task_UpdateMeasurement()
 {
     float temp, humi;
-    int16_t temp_buf, T_delta;
-    uint8_t humi_buf, H_delta;
+    int16_t temp_buf, T_delta, *Tptr = tempx10_array;
+    uint8_t humi_buf, H_delta, i, *Hptr = humi_array;
 
     /** SHTC3 init */
     SHTC3_Init();
@@ -121,15 +121,27 @@ void Task_UpdateMeasurement()
     temp_buf = (int16_t)(temp*10);
     humi_buf = (uint8_t)humi;
 
+    /** Write into array */
+    tempx10_array[array_idx] = temp_buf;
+    humi_array[array_idx] = humi_buf;
+    if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
+        array_idx = 0;
+
     /** Update extrema */
-    if (temp_buf > T_max)
-        T_max = temp_buf;
-    if (temp_buf < T_min)
-        T_min = temp_buf;
-    if (humi_buf > H_max)
-        H_max = humi_buf;
-    if (humi_buf < H_min)
-        H_min = humi_buf;
+    for (i = 0; i < SHTC3_MAX_DATA_RECORD_LEN; ++i)
+    {
+        if (*Tptr > T_max)
+            T_max = *Tptr;
+        if (*Tptr < T_min)
+            T_min = *Tptr;
+        if (*Hptr > H_max)
+            H_max = *Hptr;
+        if (*Hptr < H_min)
+            H_min = *Hptr;
+
+        ++Tptr;
+        ++Hptr;
+    }
 
     /** Limit extrema */
     if (T_max - T_min < SHTC3_TEMP_MIN_GAP)
@@ -150,12 +162,6 @@ void Task_UpdateMeasurement()
     T_numerator = GUI_PLOT_YBEGIN*T_delta + T_max*GUI_PLOT_HEIGHT;
     H_delta = H_max - H_min;
     H_numerator = GUI_PLOT_YBEGIN*H_delta + H_max*GUI_PLOT_HEIGHT;
-
-    /** Write into array */
-    tempx10_array[array_idx] = temp_buf;
-    humi_array[array_idx] = humi_buf;
-    if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
-        array_idx = 0;
 }
 
 void Task_Display()
@@ -210,11 +216,11 @@ void Task_Display()
     
     ///< Draw graph
     delta = T_max - T_min;
-    width_prev = 0;
+    width_prev = GUI_PLOT_XBEGIN + 1;
     height_prev = (uint16_t)((T_numerator - tempx10_array[array_idx]*GUI_PLOT_HEIGHT) / delta);
     for (j = 1, i = array_idx+1; i < SHTC3_MAX_DATA_RECORD_LEN; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((T_numerator - tempx10_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -222,7 +228,7 @@ void Task_Display()
     }
     for (i = 0; i < array_idx; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((T_numerator - tempx10_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -259,11 +265,11 @@ void Task_Display()
     
     ///< Draw graph
     delta = H_max - H_min;
-    width_prev = 0;
+    width_prev = GUI_PLOT_XBEGIN + 1;
     height_prev = (uint16_t)((H_numerator - humi_array[array_idx]*GUI_PLOT_HEIGHT) / delta);
     for (j = 1, i = array_idx+1; i < SHTC3_MAX_DATA_RECORD_LEN; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((H_numerator - humi_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -271,7 +277,7 @@ void Task_Display()
     }
     for (i = 0; i < array_idx; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((H_numerator - humi_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
