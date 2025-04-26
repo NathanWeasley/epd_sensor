@@ -128,6 +128,10 @@ void Task_UpdateMeasurement()
         array_idx = 0;
 
     /** Update extrema */
+    T_max = INT16_MIN;
+    T_min = INT16_MAX;
+    H_max = 0;
+    H_min = UINT8_MAX;
     for (i = 0; i < SHTC3_MAX_DATA_RECORD_LEN; ++i)
     {
         if (*Tptr > T_max)
