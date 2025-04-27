@@ -38,7 +38,7 @@ int main(void)
     Task_UpdateMeasurement();
 
     /** Prepare and update VBUS and VBAT readings */
-    Task_UpdateBattery();
+    // Task_UpdateBattery();
 
     /** Prepare and update UI */
     Task_Display();
