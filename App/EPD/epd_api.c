@@ -4,7 +4,7 @@
 
 static uint8_t ImageBuf[IMG_SIZE];
 
-void EPD_Refresh(void)
+void EPD_RefreshScreen(void)
 {
     EPD_SendCommand(0x22);
     EPD_SendData(0xF7);
@@ -123,7 +123,7 @@ void EPD_Clear(void)
         }
     }
 
-    EPD_Refresh();
+    EPD_RefreshScreen();
 }
 
 void EPD_UpdateBlack(const uint8_t *blackImage)
@@ -181,7 +181,7 @@ void EPD_UpdateAll(const uint8_t *blackImage, const uint8_t *redImage)
         }
     }
 
-    EPD_Refresh();
+    EPD_RefreshScreen();
 }
 
 void EPD_Sleep(void)

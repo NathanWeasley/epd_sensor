@@ -4,13 +4,16 @@
 #include "Graphics/GUI_Paint.h"
 #include "Graphics/icon.h"
 #include "SHTC3/SHTC3_api.h"
-#include "Battery/battery.h"
+
+#include "core_cm0plus.h"
+#include "stm32l051xx.h"
 #include "stm32l0xx_ll_utils.h"
 #include "stm32l0xx_ll_pwr.h"
 #include "stm32l0xx_ll_cortex.h"
 #include "stm32l0xx_ll_system.h"
 #include "stm32l0xx_ll_exti.h"
 #include "stm32l0xx_ll_gpio.h"
+#include "stm32l0xx_ll_rtc.h"
 
 #include <stdio.h>
 
@@ -43,10 +46,10 @@
 #define SHTC3_TEMP_MIN_GAP      (50)
 #define SHTC3_HUMI_MIN_GAP      (10)
 #define SHTC3_MAX_DATA_RECORD_LEN   (100)
-static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN] = {0};
+static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN] = {290};
 static int16_t T_max = INT16_MIN, T_min = INT16_MAX;
 static int32_t T_numerator;
-static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN] = {0};
+static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN] = {37};
 static uint8_t H_max = 0, H_min = UINT8_MAX;
 static int32_t H_numerator;
 uint8_t array_idx = 0;
@@ -64,27 +67,51 @@ void Task_Init()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    /** Debugging */
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
     LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
 
+    EPD_GPIO_Init();
+    EPD_SPI_Init();
+
+    /** Debug SW */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_14;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    // /** EPD init */
-    // if (EPD_GetSwitch())
-    // {
-    //     EPD_Init();
-    // }
+    /** Debug LED */
+    GPIOA->BRR = LL_GPIO_PIN_15;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /** Voltage divider */
+    GPIOA->BRR = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_DOWN;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /** EPD init */
+    if (EPD_GetSwitch())
+    {
+        EPD_Init();
+    }
 }
 
 void Task_UpdateMeasurement()
 {
     float temp, humi;
-    int16_t temp_buf, T_delta;
-    uint8_t humi_buf, H_delta;
+    int16_t temp_buf, T_delta, *Tptr = tempx10_array;
+    uint8_t humi_buf, H_delta, i, *Hptr = humi_array;
+
+    /** SHTC3 init */
+    SHTC3_Init();
 
     /** SHTC3 init (only inits IIC emulation GPIO) */
     SHTC3_Init();
@@ -98,15 +125,31 @@ void Task_UpdateMeasurement()
     temp_buf = (int16_t)(temp*10);
     humi_buf = (uint8_t)humi;
 
+    /** Write into array */
+    tempx10_array[array_idx] = temp_buf;
+    humi_array[array_idx] = humi_buf;
+    if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
+        array_idx = 0;
+
     /** Update extrema */
-    if (temp_buf > T_max)
-        T_max = temp_buf;
-    if (temp_buf < T_min)
-        T_min = temp_buf;
-    if (humi_buf > H_max)
-        H_max = humi_buf;
-    if (humi_buf < H_min)
-        H_min = humi_buf;
+    T_max = INT16_MIN;
+    T_min = INT16_MAX;
+    H_max = 0;
+    H_min = UINT8_MAX;
+    for (i = 0; i < SHTC3_MAX_DATA_RECORD_LEN; ++i)
+    {
+        if (*Tptr > T_max)
+            T_max = *Tptr;
+        if (*Tptr < T_min)
+            T_min = *Tptr;
+        if (*Hptr > H_max)
+            H_max = *Hptr;
+        if (*Hptr < H_min)
+            H_min = *Hptr;
+
+        ++Tptr;
+        ++Hptr;
+    }
 
     /** Limit extrema */
     if (T_max - T_min < SHTC3_TEMP_MIN_GAP)
@@ -127,109 +170,6 @@ void Task_UpdateMeasurement()
     T_numerator = GUI_PLOT_YBEGIN*T_delta + T_max*GUI_PLOT_HEIGHT;
     H_delta = H_max - H_min;
     H_numerator = GUI_PLOT_YBEGIN*H_delta + H_max*GUI_PLOT_HEIGHT;
-
-    /** Write into array */
-    tempx10_array[array_idx] = temp_buf;
-    humi_array[array_idx] = humi_buf;
-    if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
-        array_idx = 0;
-}
-
-void Task_UpdateBattery()
-{
-    LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-    LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
-    LL_ADC_InitTypeDef ADC_InitStruct = {0};
-
-    /** Enable GPIO clock */
-    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
-    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
-
-    /** Init MOSFET switch for voltage divider */
-    VIN_EN_PORT->BSRR = VBAT_EN_PIN | VBUS_EN_PIN;
-    GPIO_InitStruct.Pin = VBAT_EN_PIN | VBUS_EN_PIN;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    LL_GPIO_Init(VIN_EN_PORT, &GPIO_InitStruct);
-
-    /** ADC clock enable */
-    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ADC1);
-
-    /** ADC pin config */
-    GPIO_InitStruct.Pin = VBAT_AIN_PIN | VBUS_AIN_PIN;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(VIN_PORT, &GPIO_InitStruct);
-
-    /** ADC Regular Channel */
-    LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_1);
-    LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_2);
-    LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_17);    ///< VREF_INT
-
-    /** ADC Common config */
-    ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
-    ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_1RANK;
-    ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
-    ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
-    ADC_REG_InitStruct.Overrun = LL_ADC_REG_OVR_DATA_PRESERVED;
-    LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
-    LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
-    LL_ADC_SetOverSamplingScope(ADC1, LL_ADC_OVS_DISABLE);
-    LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_FORWARD);
-    LL_ADC_SetCommonFrequencyMode(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_CLOCK_FREQ_MODE_HIGH);
-    LL_ADC_DisableIT_EOC(ADC1);
-    LL_ADC_DisableIT_EOS(ADC1);
-    ADC_InitStruct.Clock = LL_ADC_CLOCK_SYNC_PCLK_DIV1;
-    ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
-    ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
-    ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
-    LL_ADC_Init(ADC1, &ADC_InitStruct);
-    LL_ADC_Enable(ADC1);
-
-    /** Enable ADC internal voltage regulator */
-    LL_ADC_EnableInternalRegulator(ADC1);
-    /* Compute number of CPU cycles to wait for, from delay in us. */
-    /* Note: Variable divided by 2 to compensate partially */
-    /* CPU processing cycles (depends on compilation optimization). */
-    /**
-     * Delay for ADC internal voltage regulator stabilization.
-     * Note: If system core clock frequency is below 200kHz, wait time
-     * is only a few CPU processing cycles.
-     */
-    uint32_t wait_loop_index;
-    wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
-    while (wait_loop_index != 0)
-    {
-      wait_loop_index--;
-    }
-
-    /** Enable voltage divider */
-    VIN_EN_PORT->BSRR = VBAT_EN_PIN | VBUS_EN_PIN;
-    LL_mDelay(1);       ///< Wait for capacitor to stablize
-
-    /** Start ADC conversion */
-    LL_ADC_REG_StartConversion(ADC1);
-    while (!LL_ADC_IsActiveFlag_EOC(ADC1));
-    vbat_val = LL_ADC_REG_ReadConversionData12(ADC1);
-    LL_ADC_REG_StartConversion(ADC1);
-    while (!LL_ADC_IsActiveFlag_EOC(ADC1));
-    vbus_val = LL_ADC_REG_ReadConversionData12(ADC1);
-    LL_ADC_REG_StartConversion(ADC1);
-    while (!LL_ADC_IsActiveFlag_EOC(ADC1));
-    vref_val = LL_ADC_REG_ReadConversionData12(ADC1);
-    LL_ADC_ClearFlag_EOS(ADC1);
-
-    /** Disable voltage divider */
-    VIN_EN_PORT->BRR = VBAT_EN_PIN | VBUS_EN_PIN;
-
-    /** Disable ADC */
-    LL_ADC_DeInit(ADC1);
-    LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_ADC1);
-
-    /** Process values */
-    ///< TODO
 }
 
 void Task_Display()
@@ -284,11 +224,11 @@ void Task_Display()
     
     ///< Draw graph
     delta = T_max - T_min;
-    width_prev = 0;
+    width_prev = GUI_PLOT_XBEGIN + 1;
     height_prev = (uint16_t)((T_numerator - tempx10_array[array_idx]*GUI_PLOT_HEIGHT) / delta);
     for (j = 1, i = array_idx+1; i < SHTC3_MAX_DATA_RECORD_LEN; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((T_numerator - tempx10_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -296,7 +236,7 @@ void Task_Display()
     }
     for (i = 0; i < array_idx; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((T_numerator - tempx10_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -315,9 +255,7 @@ void Task_Display()
 
     if (EPD_GetSwitch())
     {
-        /** Init EPD */
-        EPD_Init();
-
+        // EPD_Init();
         EPD_UpdateBlack(img);
     }
 
@@ -335,11 +273,11 @@ void Task_Display()
     
     ///< Draw graph
     delta = H_max - H_min;
-    width_prev = 0;
+    width_prev = GUI_PLOT_XBEGIN + 1;
     height_prev = (uint16_t)((H_numerator - humi_array[array_idx]*GUI_PLOT_HEIGHT) / delta);
     for (j = 1, i = array_idx+1; i < SHTC3_MAX_DATA_RECORD_LEN; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((H_numerator - humi_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -347,7 +285,7 @@ void Task_Display()
     }
     for (i = 0; i < array_idx; ++i, ++j)
     {
-        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j;
+        width = GUI_PLOT_XBEGIN + GUI_PLOT_GAP * j + 1;
         height = (uint16_t)((H_numerator - humi_array[i]*GUI_PLOT_HEIGHT) / delta);
         Paint_DrawLine(width_prev, height_prev, width, height, BLACK, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
         width_prev = width;
@@ -377,10 +315,9 @@ void Task_Display()
     /** Update display */
     if (EPD_GetSwitch())
     {
-        EPD_Refresh();
-
-        /** Stop SPI */
-        EPD_DeInit();
+        EPD_RefreshScreen();
+        
+        while (!(EPD_BUSY_PORT->IDR & EPD_BUSY_PIN));   ///< Wait for BUSY pin to set
 
         /** Set falling edge event on EPD_BUSY */
         LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE0);
@@ -393,7 +330,12 @@ void Task_Display()
         LL_EXTI_Init(&EXTI_InitStruct);
 
         /** Enter stop mode and wait for wakeup by BUSY pin falling */
-        LPM_StopUntilEvent();
+        LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
+        LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
+        LL_LPM_EnableDeepSleep();
+        __SEV();
+        __WFE();
+        __WFE();
 
         /** Recover MOSFET management pins to shutdown EPD */
         LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
@@ -444,10 +386,60 @@ void Task_PrepareForSleep()
     LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_SPI1);
 }
 
-void LPM_StopUntilEvent()
+void LPM_StopUntilRTC()
 {
-    LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
-    LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
-    LL_LPM_EnableDeepSleep();
+    LPM_StopAndWFI();
+
+    /** Clear RTC ISR */
+    LL_RTC_ClearFlag_WUT(RTC);
+    // LL_SYSTICK_EnableIT();
+}
+
+void LPM_StopAndWFI()
+{
+    uint32_t ulpbit, vrefinbit, tmpreg;
+
+    ulpbit = READ_BIT(PWR->CR, PWR_CR_ULP);
+    vrefinbit = READ_BIT(SYSCFG->CFGR3, SYSCFG_CFGR3_EN_VREFINT);
+    if ((ulpbit != 0) && (vrefinbit != 0))
+    {
+        CLEAR_BIT(PWR->CR, PWR_CR_ULP);
+    }
+
+    tmpreg = PWR->CR;
+    CLEAR_BIT(tmpreg, (PWR_CR_PDDS | PWR_CR_LPSDSR));
+    SET_BIT(tmpreg, PWR_CR_LPSDSR);
+    PWR->CR = tmpreg;
+
+    SET_BIT(SCB->SCR, SCB_SCR_SLEEPDEEP_Msk);
+
+    __WFI();
+}
+
+void LPM_StopAndWFE()
+{
+    uint32_t ulpbit, vrefinbit, tmpreg;
+
+    ulpbit = READ_BIT(PWR->CR, PWR_CR_ULP);
+    vrefinbit = READ_BIT(SYSCFG->CFGR3, SYSCFG_CFGR3_EN_VREFINT);
+    if ((ulpbit != 0) && (vrefinbit != 0))
+    {
+        CLEAR_BIT(PWR->CR, PWR_CR_ULP);
+    }
+
+    tmpreg = PWR->CR;
+    CLEAR_BIT(tmpreg, (PWR_CR_PDDS | PWR_CR_LPSDSR));
+    SET_BIT(tmpreg, PWR_CR_LPSDSR);
+    PWR->CR = tmpreg;
+
+    SET_BIT(SCB->SCR, SCB_SCR_SLEEPDEEP_Msk);
+
+    __SEV();
     __WFE();
+    __WFE();
+}
+
+void LPN_RecoverFromStop()
+{
+    
 }

@@ -4,5 +4,6 @@
         "core_cm0plus.h": "c",
         "epd_driver.h": "c"
     },
-    "stm32-for-vscode.openOCDPath": false
+    "stm32-for-vscode.openOCDPath": false,
+    "cortex-debug.variableUseNaturalFormat": false
 }

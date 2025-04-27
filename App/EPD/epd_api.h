@@ -6,7 +6,7 @@
 void EPD_SetPower(uint8_t onoff);
 uint8_t EPD_GetSwitch();
 
-void EPD_Refresh(void);
+void EPD_RefreshScreen(void);
 
 void EPD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend);
 void EPD_SetCursor(uint16_t Xstart, uint16_t Ystart);

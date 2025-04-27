@@ -2,15 +2,12 @@
 #include "app.h"
 
 void SystemClock_Config(void);
-static void MX_LPTIM1_Init(void);
+static void MX_ADC_Init(void);
 static void MX_RTC_Init(void);
 
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
+  LL_GPIO_InitTypeDef GPIO_InitStruct;
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 
@@ -20,13 +17,24 @@ int main(void)
 
   MX_RTC_Init();
 
-  Task_Init();
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIOA->BSRR = LL_GPIO_PIN_15;
+  LL_mDelay(2000);
+  GPIOA->BRR = LL_GPIO_PIN_15;
 
-  LL_mDelay(5000);      ///< This delay is here only for measurement
+  // LL_DBGMCU_EnableDBGStopMode();
 
   while (1)
   {
-    /** Prepare and measure temperature and humidity */
+    //MX_ADC_Init();
+
+    Task_Init();
+
     Task_UpdateMeasurement();
 
     /** Prepare and update VBUS and VBAT readings */
@@ -38,13 +46,24 @@ int main(void)
     /** Shutdown all peripherals and prepare GPIO */
     Task_PrepareForSleep();
 
-    /** Prepare RTC and enter stop mode */
-    LPM_StopUntilEvent();
+    LPM_StopUntilRTC();
 
-    /** Recover 8MHz HSI clock */
-    // Task_RecoverClock();
+    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+    LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
+    NVIC_SetPriority(SysTick_IRQn, 3);
+    SystemClock_Config();
+
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIOA->BSRR = LL_GPIO_PIN_15;
+    LL_mDelay(100);
+    GPIOA->BRR = LL_GPIO_PIN_15;
   }
-
 }
 
 /**
@@ -54,105 +73,100 @@ int main(void)
 void SystemClock_Config(void)
 {
   LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-  while(LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0)
-  {
-  }
+  while (LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0);
+
   LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
-  while (LL_PWR_IsActiveFlag_VOS() != 0)
-  {
-  }
-  LL_RCC_HSI_EnableDivider();
+  while (LL_PWR_IsActiveFlag_VOS() != 0);
+
   LL_RCC_HSI_Enable();
-
-   /* Wait till HSI is ready */
-  while(LL_RCC_HSI_IsReady() != 1)
-  {
-
-  }
+  while (LL_RCC_HSI_IsReady() != 1); /* Wait till HSI is ready */
   LL_RCC_HSI_SetCalibTrimming(16);
-  LL_RCC_LSI_Enable();
 
-   /* Wait till LSI is ready */
-  while(LL_RCC_LSI_IsReady() != 1)
-  {
-
-  }
   LL_PWR_EnableBkUpAccess();
-  if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
+  if (LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
   {
     LL_RCC_ForceBackupDomainReset();
     LL_RCC_ReleaseBackupDomainReset();
   }
+
   LL_RCC_LSE_SetDriveCapability(LL_RCC_LSEDRIVE_LOW);
   LL_RCC_LSE_Enable();
-
    /* Wait till LSE is ready */
-  while(LL_RCC_LSE_IsReady() != 1)
-  {
+  while (LL_RCC_LSE_IsReady() != 1);
 
-  }
-  if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
+  if (LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
   {
     LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
   }
   LL_RCC_EnableRTC();
-  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLL_MUL_4, LL_RCC_PLL_DIV_2);
-  LL_RCC_PLL_Enable();
 
-   /* Wait till PLL is ready */
-  while(LL_RCC_PLL_IsReady() != 1)
-  {
-
-  }
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_2);
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSI);
 
    /* Wait till System clock is ready */
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
-  {
-
-  }
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSI);
 
   LL_Init1msTick(8000000);
-
   LL_SetSystemCoreClock(8000000);
-  LL_RCC_SetLPTIMClockSource(LL_RCC_LPTIM1_CLKSOURCE_LSI);
 }
 
 /**
-  * @brief LPTIM1 Initialization Function
+  * @brief ADC Initialization Function
   * @param None
   * @retval None
   */
-static void MX_LPTIM1_Init(void)
+static void MX_ADC_Init(void)
 {
+  LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
+  LL_ADC_InitTypeDef ADC_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* USER CODE BEGIN LPTIM1_Init 0 */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ADC1);
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
 
-  /* USER CODE END LPTIM1_Init 0 */
+  GPIO_InitStruct.Pin = VBAT_IN_Pin | VBUS_IN_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(VBAT_IN_GPIO_Port, &GPIO_InitStruct);
 
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_LPTIM1);
+  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_1);
+  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_2);
+  LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_17);
 
-  /* LPTIM1 interrupt Init */
-  NVIC_SetPriority(LPTIM1_IRQn, 0);
-  NVIC_EnableIRQ(LPTIM1_IRQn);
+  ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
+  ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
+  ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
+  ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
+  ADC_REG_InitStruct.Overrun = LL_ADC_REG_OVR_DATA_PRESERVED;
+  LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
+  LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_1CYCLE_5);
+  LL_ADC_SetOverSamplingScope(ADC1, LL_ADC_OVS_DISABLE);
+  LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_FORWARD);
+  LL_ADC_SetCommonFrequencyMode(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_CLOCK_FREQ_MODE_HIGH);
+  LL_ADC_DisableIT_EOC(ADC1);
+  LL_ADC_DisableIT_EOS(ADC1);
+  ADC_InitStruct.Clock = LL_ADC_CLOCK_SYNC_PCLK_DIV1;
+  ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
+  ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
+  ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
+  LL_ADC_Init(ADC1, &ADC_InitStruct);
 
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
-  LL_LPTIM_SetClockSource(LPTIM1, LL_LPTIM_CLK_SOURCE_INTERNAL);
-  LL_LPTIM_SetPrescaler(LPTIM1, LL_LPTIM_PRESCALER_DIV1);
-  LL_LPTIM_SetPolarity(LPTIM1, LL_LPTIM_OUTPUT_POLARITY_REGULAR);
-  LL_LPTIM_SetUpdateMode(LPTIM1, LL_LPTIM_UPDATE_MODE_IMMEDIATE);
-  LL_LPTIM_SetCounterMode(LPTIM1, LL_LPTIM_COUNTER_MODE_INTERNAL);
-  LL_LPTIM_TrigSw(LPTIM1);
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
-
+  /* Enable ADC internal voltage regulator */
+  LL_ADC_EnableInternalRegulator(ADC1);
+  /* Delay for ADC internal voltage regulator stabilization. */
+  /* Compute number of CPU cycles to wait for, from delay in us. */
+  /* Note: Variable divided by 2 to compensate partially */
+  /* CPU processing cycles (depends on compilation optimization). */
+  /* Note: If system core clock frequency is below 200kHz, wait time */
+  /* is only a few CPU processing cycles. */
+  uint32_t wait_loop_index;
+  wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
+  while (wait_loop_index != 0)
+  {
+    wait_loop_index--;
+  }
 }
 
 /**
@@ -165,49 +179,45 @@ static void MX_RTC_Init(void)
   LL_RTC_InitTypeDef RTC_InitStruct = {0};
 
   /* Peripheral clock enable */
-  LL_RCC_EnableRTC();
+  // clock already enabled in systemclock_init()
 
   /* RTC interrupt Init */
   NVIC_SetPriority(RTC_IRQn, 0);
   NVIC_EnableIRQ(RTC_IRQn);
 
-  /** Initialize RTC and set the Time and Date
-  */
   RTC_InitStruct.HourFormat = LL_RTC_HOURFORMAT_24HOUR;
   RTC_InitStruct.AsynchPrescaler = 127;
   RTC_InitStruct.SynchPrescaler = 255;
   LL_RTC_Init(RTC, &RTC_InitStruct);
 
-  /** Initialize RTC and set the Time and Date
-  */
+  /** Disable WP */
+  RTC->WPR = 0xCA;
+  RTC->WPR = 0x53;
 
-  /** Enable the WakeUp
-  */
+  /** Disable Wakeup timer and wait for clock sync */
+  RTC->CR &=~ RTC_CR_WUTE;
+  while ((RTC->ISR & RTC_ISR_WUTWF) != RTC_ISR_WUTWF);
+
+  /** Clear WUTF flag */
+  LL_RTC_ClearFlag_WUT(RTC);
+
+  /** Select wakeup clock source */
   LL_RTC_WAKEUP_SetClock(RTC, LL_RTC_WAKEUPCLOCK_CKSPRE);
+
+  /** Set auto reload value */
+  LL_RTC_WAKEUP_SetAutoReload(RTC, 1800 - 1);
+
+  /** Re-enable Wakeup timer and enable interrupt */
+  RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
+
+  /** Enable WP */
+  RTC->WPR = 0xFE;
+  RTC->WPR = 0x64;
+
+  /** Enable RTC wakeup interrupt through EXTI */
+  EXTI->IMR |= EXTI_IMR_IM20;
+  EXTI->RTSR |= EXTI_RTSR_RT20;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
   * @brief  This function is executed in case of error occurrence.
