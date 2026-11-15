@@ -1,4 +1,5 @@
 #include "Task/task.h"
+#include "Battery/battery.h"
 #include "EPD/epd_api.h"
 #include "EPD/epd_driver.h"
 #include "Graphics/GUI_Paint.h"
@@ -15,7 +16,7 @@
 #include "stm32l0xx_ll_gpio.h"
 #include "stm32l0xx_ll_rtc.h"
 
-#include <stdio.h>
+#include <stddef.h>
 
 #define GUI_UPPER_YBEGIN        (0)
 #define GUI_UPPER_HEIGHT        (64)
@@ -46,22 +47,42 @@
 #define SHTC3_TEMP_MIN_GAP      (50)
 #define SHTC3_HUMI_MIN_GAP      (10)
 #define SHTC3_MAX_DATA_RECORD_LEN   (100)
-static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN] = {290};
+#define BATTERY_LOW_MV              (3200U)
+#define BATTERY_RECOVER_MV          (3300U)
+static int16_t tempx10_array[SHTC3_MAX_DATA_RECORD_LEN];
 static int16_t T_max = INT16_MIN, T_min = INT16_MAX;
 static int32_t T_numerator;
-static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN] = {37};
+static uint8_t humi_array[SHTC3_MAX_DATA_RECORD_LEN];
 static uint8_t H_max = 0, H_min = UINT8_MAX;
 static int32_t H_numerator;
+static uint8_t history_initialized = 0;
 uint8_t array_idx = 0;
 
 typedef enum
 {
     BATTERY_NORMAL = 0,
-    BATTERY_CRITICL = 1,
-    BATTERY_CHARGING = 2
+    BATTERY_CRITICL = 1
 } battery_state_e;
 battery_state_e battery_flag = BATTERY_NORMAL;
-uint16_t vbat_val, vbus_val, vref_val;
+static uint16_t battery_voltage_mv;
+static uint8_t battery_reading_valid;
+static uint8_t epd_ready;
+
+void Task_UpdateBattery(void)
+{
+    uint16_t battery_mv;
+
+    battery_reading_valid = 0;
+    if (!Battery_ReadMillivolts(&battery_mv))
+        return;
+
+    battery_voltage_mv = battery_mv;
+    battery_reading_valid = 1;
+    if (battery_mv < BATTERY_LOW_MV)
+        battery_flag = BATTERY_CRITICL;
+    else if (battery_mv >= BATTERY_RECOVER_MV)
+        battery_flag = BATTERY_NORMAL;
+}
 
 void Task_Init()
 {
@@ -69,9 +90,6 @@ void Task_Init()
 
     LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
     LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
-
-    EPD_GPIO_Init();
-    EPD_SPI_Init();
 
     /** Debug SW */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_15 | LL_GPIO_PIN_14;
@@ -98,7 +116,8 @@ void Task_Init()
     LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /** EPD init */
-    if (EPD_GetSwitch())
+    epd_ready = EPD_GetSwitch();
+    if (epd_ready)
     {
         EPD_Init();
     }
@@ -109,25 +128,38 @@ void Task_UpdateMeasurement()
     float temp, humi;
     int16_t temp_buf, T_delta, *Tptr = tempx10_array;
     uint8_t humi_buf, H_delta, i, *Hptr = humi_array;
+    shtc3_ret_e ret;
 
-    /** SHTC3 init */
-    SHTC3_Init();
-
-    /** SHTC3 init (only inits IIC emulation GPIO) */
+    /** Configure the software I2C GPIO once per wakeup. */
     SHTC3_Init();
 
     /** Wakep sensor and read */
-    SHTC3_WakeUp();
-    SHTC3_GetTempAndHumi(&temp, &humi);
+    ret = SHTC3_WakeUp();
+    if (ret == SHTC3_OK)
+        ret = SHTC3_GetTempAndHumi(&temp, &humi);
     SHTC3_Sleep();
+    if (ret != SHTC3_OK)
+        return;
 
     /** Sensor data processing */
     temp_buf = (int16_t)(temp*10);
     humi_buf = (uint8_t)humi;
 
-    /** Write into array */
-    tempx10_array[array_idx] = temp_buf;
-    humi_array[array_idx] = humi_buf;
+    /** Fill the history with the first valid measurement. */
+    if (!history_initialized)
+    {
+        for (i = 0; i < SHTC3_MAX_DATA_RECORD_LEN; ++i)
+        {
+            tempx10_array[i] = temp_buf;
+            humi_array[i] = humi_buf;
+        }
+        history_initialized = 1;
+    }
+    else
+    {
+        tempx10_array[array_idx] = temp_buf;
+        humi_array[array_idx] = humi_buf;
+    }
     if (++array_idx == SHTC3_MAX_DATA_RECORD_LEN)
         array_idx = 0;
 
@@ -177,23 +209,35 @@ void Task_Display()
     LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
 
     uint16_t width, height, width_prev, height_prev, delta;
-    uint8_t idx = array_idx == 0 ? SHTC3_MAX_DATA_RECORD_LEN - 1 : array_idx - 1;
-    int16_t temperature = tempx10_array[idx], humidity = humi_array[idx]*10;
-    uint8_t * img = NULL;
+    uint8_t idx;
+    int16_t temperature, humidity;
+    uint8_t * img;
     uint8_t i, j;
     const icon_t * picon = NULL;
+    char battery_text[] = "---- mV";
+    uint16_t battery_text_x = (EPD_HEIGHT - 7U * Font8.Width) / 2U;
+
+    if (!history_initialized || !epd_ready)
+        return;
+
+    idx = array_idx == 0 ? SHTC3_MAX_DATA_RECORD_LEN - 1 : array_idx - 1;
+    temperature = tempx10_array[idx];
+    humidity = humi_array[idx] * 10;
+
+    if (battery_reading_valid)
+    {
+        battery_text[0] = '0' + battery_voltage_mv / 1000U;
+        battery_text[1] = '0' + (battery_voltage_mv / 100U) % 10U;
+        battery_text[2] = '0' + (battery_voltage_mv / 10U) % 10U;
+        battery_text[3] = '0' + battery_voltage_mv % 10U;
+    }
 
     /** Preprocess */
     img = EPD_GetVRAM();
     Paint_NewImage(img, EPD_WIDTH, EPD_HEIGHT, 90, WHITE);
-    Paint_SelectImage(img);
     if (battery_flag == BATTERY_CRITICL)
     {
         picon = &(icon_table[ICON_NOBAT]);
-    }
-    else if (battery_flag == BATTERY_CHARGING)
-    {
-        picon = &(icon_table[ICON_CHRG]);
     }
 
     /** Paint black part */
@@ -253,11 +297,15 @@ void Task_Display()
             WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     }
 
-    if (EPD_GetSwitch())
-    {
-        // EPD_Init();
-        EPD_UpdateBlack(img);
-    }
+    /* Reserve a small white window in the bottom graph axis for debug voltage. */
+    Paint_DrawRectangle(battery_text_x - 3U, GUI_XAXIS_YBEGIN - 1U,
+                        battery_text_x + 7U * Font8.Width + 2U, EPD_WIDTH,
+                        WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    for (i = 0U; i < 7U; ++i)
+        Paint_DrawChar(battery_text_x + i * Font8.Width, GUI_XAXIS_YBEGIN,
+                       battery_text[i], &Font8, BLACK, WHITE);
+
+    EPD_UpdateBlack(img);
 
     /** Paint red part */
     Paint_Clear(WHITE);     ///< TODO: Replace with background pouring
@@ -304,47 +352,40 @@ void Task_Display()
         Paint_DrawIcon(
             EPD_HEIGHT/2 - picon->width/2,
             GUI_LOWER_YBEGIN + (GUI_LOWER_HEIGHT-picon->height)/2 - 4,
-            &(icon_table[ICON_NOBAT]), RED, WHITE);
+            picon, RED, WHITE);
     }
 
-    if (EPD_GetSwitch())
-    {
-        EPD_UpdateRed(img);
-    }
+    /* Keep the red plane clear behind the black voltage text. */
+    Paint_DrawRectangle(battery_text_x - 3U, GUI_XAXIS_YBEGIN - 1U,
+                        battery_text_x + 7U * Font8.Width + 2U, EPD_WIDTH,
+                        WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+
+    EPD_UpdateRed(img);
 
     /** Update display */
-    if (EPD_GetSwitch())
-    {
-        EPD_RefreshScreen();
-        
-        while (!(EPD_BUSY_PORT->IDR & EPD_BUSY_PIN));   ///< Wait for BUSY pin to set
+    EPD_RefreshScreen();
 
-        /** Set falling edge event on EPD_BUSY */
-        LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE0);
-        LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_0, LL_GPIO_PULL_NO);
-        LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
-        EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_0;
-        EXTI_InitStruct.LineCommand = ENABLE;
-        EXTI_InitStruct.Mode = LL_EXTI_MODE_EVENT;
-        EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
-        LL_EXTI_Init(&EXTI_InitStruct);
+    /** Set falling edge event on EPD_BUSY */
+    LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE0);
+    LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_0, LL_GPIO_PULL_NO);
+    LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
+    EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_0;
+    EXTI_InitStruct.LineCommand = ENABLE;
+    EXTI_InitStruct.Mode = LL_EXTI_MODE_EVENT;
+    EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
+    LL_EXTI_Init(&EXTI_InitStruct);
 
-        /** Enter stop mode and wait for wakeup by BUSY pin falling */
-        LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
-        LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
-        LL_LPM_EnableDeepSleep();
-        __SEV();
-        __WFE();
-        __WFE();
+    /** Enter stop mode and wait for wakeup by BUSY pin falling */
+    LL_PWR_SetRegulModeLP(LL_PWR_REGU_LPMODES_LOW_POWER);
+    LL_PWR_SetPowerMode(LL_PWR_MODE_STOP);
+    LL_LPM_EnableDeepSleep();
+    __SEV();
+    __WFE();
+    __WFE();
 
-        /** Recover MOSFET management pins to shutdown EPD */
-        LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
-        LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_1);
-        LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_1, LL_GPIO_MODE_OUTPUT);
-        LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_1, LL_GPIO_SPEED_FREQ_LOW);
-        LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_1, LL_GPIO_PULL_NO);
-        LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_1, LL_GPIO_OUTPUT_PUSHPULL);
-    }
+    /** Restore GPIO access and let R12 turn off the EPD power switch. */
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+    EPD_SetPower(0);
 }
 
 void Task_PrepareForSleep()
@@ -366,15 +407,12 @@ void Task_PrepareForSleep()
                           LL_GPIO_PIN_9 | LL_GPIO_PIN_10 | LL_GPIO_PIN_11 | LL_GPIO_PIN_12 |
                           LL_GPIO_PIN_13 | LL_GPIO_PIN_14 | LL_GPIO_PIN_15;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_13;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     GPIO_InitStruct.Pin = LL_GPIO_PIN_0 | LL_GPIO_PIN_1;
     LL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
     /** MOSFET switches set to close */
     GPIOA->BRR = LL_GPIO_PIN_11;        ///< VBUS voltage divider
     GPIOA->BRR = LL_GPIO_PIN_12;        ///< VBAT voltage divider
-    GPIOB->BSRR = LL_GPIO_PIN_1;        ///< EPD power switch (1=off, 0=on)
 
     /** Stop GPIO clock */
     LL_IOP_GRP1_DisableClock(LL_IOP_GRP1_PERIPH_GPIOC);

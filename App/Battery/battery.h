@@ -9,3 +9,6 @@
 #define VBAT_EN_PIN         LL_GPIO_PIN_12
 #define VBUS_EN_PIN         LL_GPIO_PIN_11
 #define VIN_EN_PORT         GPIOA
+
+/* Returns 1 only when both the battery and reference ADC readings are valid. */
+uint8_t Battery_ReadMillivolts(uint16_t *millivolts);

@@ -6,26 +6,18 @@ void EPD_GPIO_Init()
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    LL_GPIO_SetOutputPin(EPD_RST_PORT, EPD_RST_PIN);
-    LL_GPIO_SetOutputPin(EPD_CS_PORT, EPD_CS_PIN);
-    LL_GPIO_SetOutputPin(EPD_DC_PORT, EPD_DC_PIN);
-    LL_GPIO_SetOutputPin(EPD_PWR_PORT, EPD_PWR_PIN);
-
+    LL_GPIO_SetOutputPin(GPIOA, EPD_RST_PIN | EPD_CS_PIN | EPD_DC_PIN);
     GPIO_InitStruct.Pin = EPD_PWR_PIN;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    /* R12 pulls the 3 V PMOS gate high while PB1 is high impedance. */
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
     GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
     LL_GPIO_Init(EPD_PWR_PORT, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = EPD_RST_PIN;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    GPIO_InitStruct.Pin = EPD_RST_PIN | EPD_CS_PIN | EPD_DC_PIN;
     LL_GPIO_Init(EPD_RST_PORT, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = EPD_CS_PIN;
-    LL_GPIO_Init(EPD_CS_PORT, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = EPD_DC_PIN;
-    LL_GPIO_Init(EPD_DC_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = EPD_BUSY_PIN;
     GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
@@ -80,12 +72,16 @@ void EPD_SetPower(uint8_t onoff)
 {
     if (onoff)
     {
-        /** Active low for PMOS */
+        /* Load the low level before enabling the output driver. */
         EPD_PWR_PORT->BRR = EPD_PWR_PIN;
+        LL_GPIO_SetPinOutputType(EPD_PWR_PORT, EPD_PWR_PIN, LL_GPIO_OUTPUT_PUSHPULL);
+        LL_GPIO_SetPinMode(EPD_PWR_PORT, EPD_PWR_PIN, LL_GPIO_MODE_OUTPUT);
     }
     else
     {
-        EPD_PWR_PORT->BSRR = EPD_PWR_PIN;
+        /* A 1.8 V output high cannot turn off a PMOS sourced from 3 V. */
+        LL_GPIO_SetPinMode(EPD_PWR_PORT, EPD_PWR_PIN, LL_GPIO_MODE_INPUT);
+        LL_GPIO_SetPinPull(EPD_PWR_PORT, EPD_PWR_PIN, LL_GPIO_PULL_NO);
     }
 }
 
